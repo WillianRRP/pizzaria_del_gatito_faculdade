@@ -6,7 +6,7 @@
       "use": "@vercel/python",
       "config": {
         "maxLambdaSize": "15mb",
-        "runtime": "python3.9"
+        "runtime": "python3.13" // MUDADO PARA 3.13
       }
     },
     {
@@ -53,8 +53,8 @@
     }
   ],
   "env": {
-    "DATABASE_URL": "@pizza_del_gatito_database_url",  
-    "SECRET_KEY": "@pizza_del_gatito_secret_key"    
+    "DATABASE_URL": "@pizza_del_gatito_database_url",
+    "SECRET_KEY": "@pizza_del_gatito_secret_key"
   },
   "outputDirectory": "."
 }
