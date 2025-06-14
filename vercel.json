@@ -1,0 +1,44 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "app.py",
+      "use": "@vercel/python",
+      "config": { "maxLambdaSize": "15mb", "runtime": "python3.9" }
+    },
+    {
+      "src": "static/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "templates/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "app.py"
+    },
+    {
+      "src": "/static/(.*)",
+      "dest": "/static/$1"
+    },
+    {
+      "src": "/(.*).html",
+      "dest": "/templates/$1.html"
+    },
+    {
+      "src": "/admin",
+      "dest": "/templates/admin.html"
+    },
+    {
+      "src": "/",
+      "dest": "/templates/index.html"
+    }
+  ],
+  "env": {
+    "DATABASE_URL": "@pizza-del-gatito-database-url",
+    "SECRET_KEY": "@pizza-del-gatito-secret-key"
+  }
+}

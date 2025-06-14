@@ -745,28 +745,7 @@ def index():
     except Exception:
         return "index.html não encontrado no diretório 'templates'", 404
 
-# REMOVIDO: Rotas customizadas para arquivos estáticos, pois o Flask lida com isso automaticamente.
-# @app.route('/styles.css')
-# def styles():
-#     """Serve o arquivo CSS da pasta static/css"""
-#     try:
-#         # Assumindo que styles.css está na mesma pasta do app.py, ou em 'static'
-#         # Se estiver em 'static', mude para: return send_from_directory('static/css', 'styles.css')
-#         return send_from_directory('.', 'styles.css')
-#     except FileNotFoundError:
-#         app.logger.error("Arquivo CSS não encontrado em static/css/styles.css")
-#         return "styles.css não encontrado", 404
 
-# @app.route('/script.js')
-# def script():
-#     """Serve o arquivo JavaScript da pasta static/js"""
-#     try:
-#         # Assumindo que script.js está na mesma pasta do app.py, ou em 'static'
-#         # Se estiver em 'static', mude para: return send_from_directory('static/js', 'script.js')
-#         return send_from_directory('.', 'script.js')
-#     except FileNotFoundError:
-#         app.logger.error("Arquivo JS não encontrado em static/js/script.js")
-#         return "script.js não encontrado", 404
 
 @app.route('/debug.html')
 def debug_page():
@@ -812,19 +791,33 @@ def internal_error(error):
     return jsonify({'success': False, 'error': 'Erro interno do servidor. Tente novamente mais tarde.'}), 500
 
 # --- Bloco de Inicialização e Execução do Aplicativo ---
+i# ... (todo o seu código anterior) ...
+
+# --- Bloco de Inicialização e Execução do Aplicativo ---
+# A função initialize_database() deve ser chamada apenas uma vez para configurar o DB e o usuário master.
+# Em um ambiente serverless como o Vercel, é mais seguro gerenciar isso externamente
+# (ex: via script de deploy ou CLI do Flask-Migrate após o deploy).
+# No entanto, para simplicidade inicial, você pode deixá-la aqui para garantir que o master user exista
+# quando a função serverless for 'aquecida' pela primeira vez, mas esteja ciente das implicações.
+# Caso haja erro ou duplicação, considere remover esta chamada para produção e fazer as migrações manualmente.
+# Para evitar tentativas repetitivas de criação do usuário master, a lógica dentro de initialize_database
+# já verifica se o usuário existe, o que ajuda a mitigar o problema.
+
+# initialize_database() # <-- Descomente ISSO COM CAUTELA se você quiser que o master user seja verificado/criado a cada cold start no Vercel.
+                         # Mas o ideal é fazer a criação e migração do DB uma única vez manualmente.
+
 if __name__ == '__main__':
-    # A inicialização do usuário master foi mantida aqui.
-    # As migrações do banco de dados devem ser executadas separadamente via linha de comando do Flask-Migrate.
+    # Este bloco é executado APENAS quando você roda o app.py localmente.
+    # A inicialização do usuário master está aqui para o ambiente de desenvolvimento.
     initialize_database()
 
     base_dir = os.path.dirname(os.path.abspath(__file__))
 
-    # Verificação de arquivos essenciais para o frontend
+    # Verificação de arquivos essenciais para o frontend (útil para debug local)
     files_to_check = [
         os.path.join(base_dir, 'templates', 'index.html'),
         os.path.join(base_dir, 'templates', 'debug.html'),
         os.path.join(base_dir, 'templates', 'admin.html'),
-        # NOVO: Verificando as pastas estáticas padrão do Flask
         os.path.join(base_dir, 'static', 'css', 'styles.css'),
         os.path.join(base_dir, 'static', 'js', 'script.js')
     ]
@@ -837,6 +830,5 @@ if __name__ == '__main__':
             print(f"    ❌ {file_path} - NÃO ENCONTRADO (Verifique se estão em 'templates' ou em 'static/css' / 'static/js')")
     
     print("\n🐱 Servidor Flask rodando! Acesse http://127.0.0.1:5000")
-    # Para desenvolvimento, debug=True ativa o modo de depuração (recarregamento automático, etc.)
-    # host='0.0.0.0' permite que a aplicação seja acessível de outras máquinas na rede
+    # A linha abaixo é APENAS para execução local e deve ser ignorada pelo Vercel.
     app.run(debug=True, host='0.0.0.0', port=5000)
