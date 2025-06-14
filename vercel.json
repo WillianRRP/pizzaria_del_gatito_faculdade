@@ -53,8 +53,8 @@
     }
   ],
   "env": {
-    "DATABASE_URL": "@pizza_del_gatito_database_url",
-    "SECRET_KEY": "@pizza_del_gatito_secret_key"
+ "DATABASE_URL": "postgresql://postgres:Admin1234@db.crmpktnykjormuarccfs.supabase.co:5432/postgres",
+  "SECRET_KEY": "minha_chave_super_secreta_123"
   },
   "outputDirectory": "."
 }
