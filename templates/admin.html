@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Pizzaria Del Gatito</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="/static/css/styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
@@ -61,7 +61,6 @@
     </style>
 </head>
 <body>
-    <!-- Tela de Login Admin -->
     <div id="admin-login-screen" class="auth-screen">
         <div class="admin-login">
             <div class="auth-header">
@@ -94,7 +93,6 @@
         </div>
     </div>
 
-    <!-- Painel Admin -->
     <div id="admin-panel" class="main-app" style="display: none;">
         <header class="header admin-header">
             <div class="container">
@@ -120,7 +118,6 @@
 
         <main class="main">
             <div class="container">
-                <!-- Estatísticas -->
                 <section class="section active">
                     <div class="section-header">
                         <h2>Dashboard Administrativo</h2>
@@ -131,16 +128,14 @@
                     </div>
 
                     <div class="admin-stats" id="admin-stats">
-                        <!-- Estatísticas serão carregadas aqui -->
-                    </div>
+                        </div>
 
                     <div class="section-header">
                         <h2>Gerenciar Pedidos</h2>
                     </div>
 
                     <div class="orders-grid" id="admin-orders-container">
-                        <!-- Pedidos serão carregados aqui -->
-                    </div>
+                        </div>
                 </section>
             </div>
         </main>
