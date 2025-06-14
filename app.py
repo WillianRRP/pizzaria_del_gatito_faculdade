@@ -11,6 +11,8 @@ from sqlalchemy import text, func # Importar 'text' para primaryjoin e 'func' pa
 from flask_migrate import Migrate # IMPORTANTE: Adicionado para gerenciar migrações de banco de dados
 
 # Carrega variáveis de ambiente do arquivo .env
+# IMPORTANTE: No Vercel, as variáveis de ambiente devem ser configuradas diretamente no dashboard.
+# load_dotenv() só funciona para ambiente local.
 load_dotenv()
 
 # --- Configuração do Aplicativo Flask ---
@@ -26,790 +28,437 @@ CORS(app, resources={r"/api/*": {"origins": "*"}})
 # Ex: DATABASE_URL="postgresql://user:password@host:port/database_name"
 database_url = os.getenv('DATABASE_URL')
 if not database_url:
+    # Em produção (Vercel), esta variável DEVE estar configurada.
+    # Localmente, ela virá do .env.
     raise ValueError("Variável de ambiente 'DATABASE_URL' não configurada. Por favor, defina-a.")
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 
 # Desativa o rastreamento de modificações para economizar memória (recomendado)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Inicializa a extensão SQLAlchemy com o aplicativo Flask
+# Inicializa a extensão SQLAlchemy
 db = SQLAlchemy(app)
 
-# Inicializa o Flask-Migrate com a aplicação e a instância do DB
-migrate = Migrate(app, db) # NOVO: Inicializa o Flask-Migrate
+# Inicializa o Flask-Migrate, linkando com o app e o banco de dados
+migrate = Migrate(app, db)
 
 # Configuração da chave secreta para JWT
-# Pega a chave secreta da variável de ambiente 'SECRET_KEY', com um fallback seguro
-secret_key = os.getenv('SECRET_KEY')
-if not secret_key:
-    # Em produção, use uma chave forte e gerada aleatoriamente
-    print("AVISO: Variável de ambiente 'SECRET_KEY' não configurada. Usando fallback. ISSO NÃO É SEGURO PARA PRODUÇÃO!")
-    secret_key = 'chave_secreta_fallback_muito_segura_para_jwt' # Fallback para desenvolvimento/teste
+# Pega a chave da variável de ambiente 'SECRET_KEY'
+# IMPORTANTE: A chave secreta DEVE ser configurada como uma variável de ambiente no Vercel
+# com o nome 'pizza_del_gatito_secret_key' (como definido no seu vercel.json).
+# O fallback é apenas para garantir que o app funcione localmente sem ela, mas NÃO é seguro para produção.
+secret_key = os.getenv('SECRET_KEY', 'chave_secreta_fallback_muito_segura_para_jwt')
+if secret_key == 'chave_secreta_fallback_muito_segura_para_jwt':
+    print("AVISO: Usando chave secreta de fallback! Configure 'SECRET_KEY' como variável de ambiente para produção.")
 app.config['SECRET_KEY'] = secret_key
 
-# --- Modelos do SQLAlchemy para as Tabelas do Banco de Dados ---
-# A ordem de definição dos modelos é importante para relacionamentos,
-# mas `db.relationship` e `db.ForeignKey` podem lidar com referências futuras (strings).
-
-class OrderHistory(db.Model):
-    """
-    Modelo para armazenar o histórico de pedidos concluídos.
-    Os pedidos são movidos para esta tabela quando o status é 'entregue'.
-    """
-    __tablename__ = 'order_history'
-    id = db.Column(db.Integer, primary_key=True)
-    original_order_id = db.Column(db.Integer, nullable=False, unique=True) # ID do pedido original
-    # user_id com ondelete='SET NULL' para manter histórico mesmo se usuário for deletado
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
-
-    customer_name = db.Column(db.String(255), nullable=False)
-    customer_phone = db.Column(db.String(50))
-    customer_address = db.Column(db.Text)
-    items = db.Column(db.JSON) # Armazena a lista de itens da pizza como JSON (PostgreSQL lida com JSONB)
-    total = db.Column(db.Numeric(10, 2), nullable=False)
-    status = db.Column(db.String(50), nullable=False) # Deve ser 'entregue' para esta tabela
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc)) # Data de criação do pedido original
-    completed_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc)) # Data em que o pedido foi concluído e movido para o histórico
-
-    def to_dict(self):
-        """Converte o objeto OrderHistory para um dicionário para serialização JSON."""
-        return {
-            'id': self.id,
-            'originalOrderId': self.original_order_id,
-            'userId': self.user_id,
-            'customerName': self.customer_name,
-            'customerPhone': self.customer_phone,
-            'customerAddress': self.customer_address,
-            'items': self.items,
-            'total': float(self.total),
-            'status': self.status,
-            'createdAt': self.created_at.isoformat() if self.created_at else None,
-            'completedAt': self.completed_at.isoformat() if self.completed_at else None
-        }
+# --- Definição dos Modelos do Banco de Dados ---
 
 class User(db.Model):
-    """
-    Modelo para a tabela de usuários, incluindo dados de autenticação e papel (role).
-    """
-    __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(255), nullable=False)
-    email = db.Column(db.String(255), unique=True, nullable=False)
-    phone = db.Column(db.String(50))
-    address = db.Column(db.Text)
-    password_hash = db.Column(db.String(255), nullable=False) # Armazena o hash da senha
-    role = db.Column(db.String(50), default='user') # 'user' ou 'master'
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc)) # Data de criação do usuário
+    name = db.Column(db.String(80), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    phone = db.Column(db.String(20), nullable=True)
+    address = db.Column(db.String(200), nullable=True)
+    password_hash = db.Column(db.String(200), nullable=False) # Armazena o hash da senha
+    role = db.Column(db.String(20), default='customer', nullable=False) # 'customer' ou 'admin'
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
-    # Relacionamento One-to-Many com a tabela 'Order' (pedidos ativos do usuário)
-    orders = db.relationship('Order', backref='user', lazy=True, cascade="all, delete-orphan")
+    # Relacionamento com Order
+    orders = db.relationship('Order', backref='user', lazy=True)
 
-    # Relacionamento One-to-Many com a tabela 'OrderHistory' (histórico de pedidos do usuário)
-    # viewonly=True indica que este relacionamento é apenas para leitura e não será usado para operações de escrita
-    # primaryjoin define a condição de junção.
-    history_orders = db.relationship(
-        'OrderHistory',
-        backref=db.backref('user_ref', lazy=True), # 'user_ref' é o nome da referência reversa em OrderHistory
-        primaryjoin=lambda: User.id == OrderHistory.user_id, # Usar expressão de coluna direta
-        viewonly=True
-    )
+    def __repr__(self):
+        return f'<User {self.email}>'
 
-    def to_dict(self, include_password_hash=False):
-        """
-        Converte o objeto User para um dicionário, útil para respostas JSON.
-        O hash da senha pode ser incluído opcionalmente (útil para debug, mas NUNCA em produção).
-        """
-        data = {
-            'id': self.id,
-            'name': self.name,
-            'email': self.email,
-            'phone': self.phone,
-            'address': self.address,
-            'role': self.role,
-            'createdAt': self.created_at.isoformat() if self.created_at else None
-        }
-        if include_password_hash:
-            data['password_hash'] = self.password_hash
-        return data
+    def set_password(self, password):
+        """Gera o hash da senha e armazena."""
+        self.password_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
+
+    def check_password(self, password):
+        """Verifica se a senha fornecida corresponde ao hash armazenado."""
+        return self.password_hash == hashlib.sha256(password.encode('utf-8')).hexdigest()
 
 class Order(db.Model):
-    """
-    Modelo para pedidos ativos.
-    Representa pedidos que estão em processo de 'pendente', 'preparando' ou 'saiu-entrega'.
-    """
-    __tablename__ = 'orders'
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False) # Chave estrangeira para a tabela de usuários
-    customer_name = db.Column(db.String(255), nullable=False)
-    customer_phone = db.Column(db.String(50))
-    customer_address = db.Column(db.Text)
-    items = db.Column(db.JSON) # Armazena a lista de itens da pizza como JSON (PostgreSQL lida com JSONB)
-    total = db.Column(db.Numeric(10, 2), nullable=False) # Valor monetário com duas casas decimais
-    status = db.Column(db.String(50), default='pendente') # 'pendente', 'preparando', 'saiu-entrega', 'entregue'
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    items = db.Column(db.Text, nullable=False) # Armazena itens como JSON string
+    total = db.Column(db.Float, nullable=False)
+    status = db.Column(db.String(50), default='pending', nullable=False) # 'pending', 'preparing', 'delivered', 'cancelled'
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc)) # Atualizado automaticamente na modificação
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
-    def to_dict(self):
-        """Converte o objeto Order para um dicionário, útil para respostas JSON."""
-        return {
-            'id': self.id,
-            'userId': self.user_id,
-            'customerName': self.customer_name,
-            'customerPhone': self.customer_phone,
-            'customerAddress': self.customer_address,
-            'items': self.items,
-            'total': float(self.total), # Converte Decimal para float para JSON
-            'status': self.status,
-            'createdAt': self.created_at.isoformat() if self.created_at else None,
-            'updatedAt': self.updated_at.isoformat() if self.updated_at else None
-        }
+    # Relacionamento com OrderHistory
+    history = db.relationship('OrderHistory', backref='order', lazy=True)
 
-# --- Funções de Utilitário ---
+    def __repr__(self):
+        return f'<Order {self.id}>'
 
-def hash_password(password: str) -> str:
-    """Gera um hash SHA256 para a senha fornecida."""
-    return hashlib.sha256(password.encode()).hexdigest()
+class OrderHistory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('order.id'), nullable=False)
+    status_change = db.Column(db.String(50), nullable=False) # Novo status
+    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
-# Usuário master padrão (o ID será atualizado após a inserção no banco)
-# Usar um dicionário para MASTER_USER facilita a atualização de seu ID após a criação no DB
+    def __repr__(self):
+        return f'<OrderHistory {self.id}>'
+
+# --- Funções Auxiliares ---
+
+# Dados do usuário mestre (admin)
 MASTER_USER = {
-    'id': None, # O ID será definido pelo DB
-    'name': 'Administrador',
-    'email': 'master@pizzaria.com',
+    'name': 'Admin Master',
+    'email': 'admin@pizzaria.com',
     'phone': '(51) 99999-0000',
-    'address': 'Pizzaria Del Gatito',
-    'password_hash': hash_password('master123'), # Armazena o hash da senha
-    'role': 'master',
-    'createdAt': datetime.now(timezone.utc) # Usando UTC para consistência
+    'address': 'Rua Principal, 0',
+    'password': 'admin', # Senha padrão para o admin
+    'role': 'admin'
 }
 
-def is_master_user(user: dict | User) -> bool:
-    """Verifica se o usuário fornecido é o usuário master."""
-    if isinstance(user, User):
-        return user.role == 'master'
-    elif isinstance(user, dict):
-        return user.get('role') == 'master'
-    return False
-
-# --- Funções JWT (JSON Web Token) ---
-def generate_token(user_id: int) -> str:
-    """Gera um token JWT para o user_id fornecido."""
-    payload = {
-        'user_id': user_id,
-        'exp': datetime.now(timezone.utc) + timedelta(days=7) # Token expira em 7 dias
-    }
-    return jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
-
-def verify_token(token: str) -> int | None:
-    """Verifica um token JWT e retorna o user_id se válido, None caso contrário."""
-    try:
-        payload = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
-        return payload['user_id']
-    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
-        return None # Token expirado ou inválido
-
-def get_current_user(request_obj) -> dict | None:
-    """
-    Obtém o usuário atual a partir do token de autenticação no cabeçalho da requisição.
-    Retorna um dicionário com os dados do usuário (sem hash de senha).
-    """
-    auth_header = request_obj.headers.get('Authorization')
-    if not auth_header or not auth_header.startswith('Bearer '):
-        return None
-
-    token = auth_header.split(' ')[1]
-    user_id = verify_token(token)
-
-    if user_id is not None:
-        # Verifica se é o usuário master pelo ID definido no MASTER_USER
-        if MASTER_USER['id'] is not None and user_id == MASTER_USER['id']:
-            # Retorna uma cópia do MASTER_USER para evitar modificações diretas
-            master_user_data = MASTER_USER.copy()
-            # Converte 'createdAt' para isoformat para consistência de saída JSON
-            master_user_data['createdAt'] = master_user_data['createdAt'].isoformat()
-            # Remove o hash da senha do dicionário de saída por segurança
-            master_user_data.pop('password_hash', None)
-            return master_user_data
-
-        # Busca o usuário no banco de dados usando o modelo User
-        user = User.query.get(user_id)
-        if user:
-            return user.to_dict(include_password_hash=False) # Retorna o dict sem o hash da senha
-    return None
-
-# --- Dados das pizzas (permanecem em memória, pois são fixos e não requerem DB) ---
-PIZZA_PRICES = {
-    'margherita': 25.00,
-    'pepperoni': 30.00,
-    'calabresa': 28.00,
-    'quatro-queijos': 32.00
-}
-
-PIZZA_NAMES = {
-    'margherita': 'Margherita',
-    'pepperoni': 'Pepperoni',
-    'calabresa': 'Calabresa',
-    'quatro-queijos': 'Quatro Queijos'
-}
-
-# --- Inicialização do Banco de Dados e Usuário Master ---
 def initialize_database():
     """
-    Garante que o usuário master padrão esteja presente no DB.
-    As tabelas são criadas/atualizadas via migrações do Flask-Migrate, não mais por db.create_all().
+    Função para inicializar o banco de dados e criar um usuário master se não existir.
+    NOTA: Para ambientes de produção (Vercel), o ideal é gerenciar a criação
+    do esquema e dados iniciais via Flask-Migrate (flask db upgrade) e/ou scripts de seed
+    executados separadamente, não no tempo de execução do aplicativo.
     """
     with app.app_context():
-        try:
-            # db.create_all() foi removido aqui. As tabelas agora são gerenciadas via Flask-Migrate (Alembic).
-            # Você precisa executar 'flask db upgrade' no terminal para aplicar as migrações.
-            print("[INFO] Verificando e criando usuário master...")
-            
-            # Verifica se o usuário master já existe pelo email
-            master_user_in_db = User.query.filter_by(email=MASTER_USER['email']).first()
-            
-            if not master_user_in_db:
-                print("[INFO] Usuário master não encontrado. Criando...")
-                new_master = User(
-                    name=MASTER_USER['name'],
-                    email=MASTER_USER['email'],
-                    phone=MASTER_USER['phone'],
-                    address=MASTER_USER['address'],
-                    password_hash=MASTER_USER['password_hash'],
-                    role='master',
-                    created_at=MASTER_USER['createdAt']
-                )
-                db.session.add(new_master)
-                db.session.commit()
-                MASTER_USER['id'] = new_master.id # Atualiza o ID no dicionário global MASTER_USER
-                print(f"[INFO] Usuário master criado com sucesso! ID: {MASTER_USER['id']}")
-            else:
-                MASTER_USER['id'] = master_user_in_db.id # Popula o ID do master se já existir
-                print(f"[INFO] Usuário master já existe. ID: {MASTER_USER['id']}")
-        except Exception as e:
-            db.session.rollback() # Em caso de erro, desfaz quaisquer alterações pendentes
-            print(f"[ERRO] Erro ao inicializar o banco de dados (usuário master): {e}")
-            raise # Relança a exceção para que o aplicativo não inicie com DB problemático
+        # db.create_all() # Removido, pois estamos usando Flask-Migrate (flask db upgrade)
 
-# --- ROTAS DA API ---
+        # Verifica se o usuário master já existe
+        master_exists = User.query.filter_by(email=MASTER_USER['email']).first()
+        if not master_exists:
+            print("Criando usuário master...")
+            master_user = User(
+                name=MASTER_USER['name'],
+                email=MASTER_USER['email'],
+                phone=MASTER_USER['phone'],
+                address=MASTER_USER['address'],
+                role=MASTER_USER['role']
+            )
+            master_user.set_password(MASTER_USER['password'])
+            db.session.add(master_user)
+            db.session.commit()
+            print("Usuário master criado com sucesso!")
+        else:
+            print("Usuário master já existe.")
+
+def generate_token(user_id, role):
+    """Gera um token JWT para o usuário."""
+    payload = {
+        'user_id': user_id,
+        'role': role,
+        'exp': datetime.now(timezone.utc) + timedelta(hours=24) # Token expira em 24 horas
+    }
+    # Codifica o payload usando a chave secreta
+    return jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
+
+def verify_token(token):
+    """Verifica e decodifica um token JWT."""
+    try:
+        # Decodifica o token usando a chave secreta
+        payload = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        return payload
+    except jwt.ExpiredSignatureError:
+        return {'error': 'Token expirado.'}
+    except jwt.InvalidTokenError:
+        return {'error': 'Token inválido.'}
+
+def login_required(f):
+    """Decorator para rotas que exigem autenticação."""
+    @app.before_request
+    def check_auth():
+        token = request.headers.get('Authorization')
+        if not token:
+            return jsonify({'success': False, 'message': 'Token de autenticação ausente.'}), 401
+        
+        try:
+            token_prefix, actual_token = token.split(' ')
+            if token_prefix != 'Bearer':
+                raise ValueError
+        except ValueError:
+            return jsonify({'success': False, 'message': 'Formato de token inválido. Use "Bearer <token>"'}), 401
+
+        payload = verify_token(actual_token)
+        if 'error' in payload:
+            return jsonify({'success': False, 'message': payload['error']}), 401
+        
+        # Armazena as informações do usuário no objeto 'g' para acesso posterior na requisição
+        request.user_id = payload['user_id']
+        request.user_role = payload['role']
+        # print(f"Usuário autenticado: ID={request.user_id}, Role={request.user_role}") # Para debug
+    return f
+
+def admin_required(f):
+    """Decorator para rotas que exigem que o usuário seja admin."""
+    @login_required # Garante que o usuário esteja logado primeiro
+    @app.before_request
+    def check_admin_role():
+        if request.user_role != 'admin':
+            return jsonify({'success': False, 'message': 'Acesso negado. Apenas administradores.'}), 403
+    return f
+
+# --- Rotas do Backend (API) ---
 
 @app.route('/api/test', methods=['GET'])
-def api_test():
-    """Rota de teste para verificar a conectividade da API e do DB."""
-    print("[DEBUG] Rota /api/test chamada")
-    with app.app_context(): # Garante o contexto da aplicação para queries do DB
-        try:
-            total_users = User.query.count()
-            total_active_orders = Order.query.count()
-            total_history_orders = OrderHistory.query.count()
-
-            return jsonify({
-                'success': True,
-                'message': 'API funcionando e conectada ao banco de dados!',
-                'timestamp': datetime.now(timezone.utc).isoformat(),
-                'users': total_users,
-                'orders': total_active_orders,
-                'history_orders': total_history_orders
-            })
-        except Exception as e:
-            print(f"[ERROR] Erro ao acessar o DB na rota /api/test: {e}")
-            return jsonify({'success': False, 'error': f'Erro ao conectar ao banco de dados: {e}'}), 500
+def test_api():
+    """Rota de teste simples para verificar a conexão do backend."""
+    return jsonify({"message": "Backend da Pizzaria Del Gatito funcionando!", "timestamp": datetime.now(timezone.utc)})
 
 @app.route('/api/register', methods=['POST'])
-def api_register():
-    """Rota para registrar um novo usuário."""
-    print("[DEBUG] Rota /api/register chamada")
+def register_user():
+    """Rota para cadastro de novos usuários."""
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'message': 'Requisição deve ser JSON'}), 400
+
+    name = data.get('name')
+    email = data.get('email')
+    phone = data.get('phone')
+    address = data.get('address')
+    password = data.get('password')
+
+    if not all([name, email, password]):
+        return jsonify({'success': False, 'message': 'Nome, email e senha são obrigatórios.'}), 400
+
+    if User.query.filter_by(email=email).first():
+        return jsonify({'success': False, 'message': 'Este email já está cadastrado.'}), 409
+
     try:
-        data = request.get_json()
-
-        if not data:
-            return jsonify({'success': False, 'error': 'Nenhum dado recebido'}), 400
-
-        required_fields = ['name', 'email', 'phone', 'address', 'password']
-        for field in required_fields:
-            if not data.get(field):
-                return jsonify({'success': False, 'error': f'Campo {field} é obrigatório'}), 400
-
-        email = data['email'].lower().strip()
-
-        # Verifica se o email já existe no banco de dados
-        existing_user = User.query.filter_by(email=email).first()
-        if existing_user:
-            return jsonify({'success': False, 'error': 'Email já cadastrado'}), 400
-
-        # Cria um novo objeto User
-        new_user = User(
-            name=data['name'].strip(),
-            email=email,
-            phone=data['phone'].strip(),
-            address=data['address'].strip(),
-            password_hash=hash_password(data['password']),
-            created_at=datetime.now(timezone.utc) # Usando UTC para consistência
-        )
-
-        # Adiciona o novo usuário à sessão do banco de dados e commita
+        new_user = User(name=name, email=email, phone=phone, address=address)
+        new_user.set_password(password)
         db.session.add(new_user)
         db.session.commit()
-
-        print(f"[DEBUG] Usuário criado e salvo no DB: {new_user.email} com ID: {new_user.id}")
-
-        return jsonify({
-            'success': True,
-            'message': 'Usuário cadastrado com sucesso',
-            'user_id': new_user.id
-        }), 201 # 201 Created
-
+        return jsonify({'success': True, 'message': 'Usuário registrado com sucesso!'}), 201
     except Exception as e:
-        db.session.rollback() # Em caso de erro, desfaz quaisquer alterações pendentes
-        print(f"[ERROR] Erro no cadastro de usuário: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        db.session.rollback()
+        print(f"Erro ao registrar usuário: {e}")
+        return jsonify({'success': False, 'message': 'Erro interno do servidor ao registrar usuário.'}), 500
 
 @app.route('/api/login', methods=['POST'])
-def api_login():
-    """Rota para autenticação de usuário e emissão de token JWT."""
-    print("[DEBUG] Rota /api/login chamada")
+def login_user():
+    """Rota para login de usuários."""
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'message': 'Requisição deve ser JSON'}), 400
 
-    try:
-        data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
 
-        if not data:
-            return jsonify({'success': False, 'error': 'Nenhum dado recebido'}), 400
+    if not all([email, password]):
+        return jsonify({'success': False, 'message': 'Email e senha são obrigatórios.'}), 400
 
-        email = data.get('email', '').lower().strip()
-        password = data.get('password', '')
+    user = User.query.filter_by(email=email).first()
+    if not user or not user.check_password(password):
+        return jsonify({'success': False, 'message': 'Email ou senha inválidos.'}), 401
 
-        if not email or not password:
-            return jsonify({'success': False, 'error': 'Email e senha obrigatórios'}), 400
+    token = generate_token(user.id, user.role)
+    return jsonify({
+        'success': True,
+        'message': 'Login bem-sucedido!',
+        'token': token,
+        'user': {
+            'id': user.id,
+            'name': user.name,
+            'email': user.email,
+            'role': user.role
+        }
+    }), 200
 
-        print(f"[DEBUG] Tentativa de login para: {email}")
-
-        # Verifica se é o usuário master primeiro
-        if email == MASTER_USER['email']:
-            # Garante que o ID do MASTER_USER esteja populado do DB (se ainda não foi)
-            if MASTER_USER['id'] is None:
-                master_user_in_db = User.query.filter_by(email=MASTER_USER['email']).first()
-                if master_user_in_db:
-                    MASTER_USER['id'] = master_user_in_db.id
-                else:
-                    # Se o master user não foi encontrado e o ID não está setado,
-                    # tenta recriar (para cenários de primeira inicialização/debug)
-                    # NOTA: Com Flask-Migrate, esta inicialização aqui NÃO criará as tabelas.
-                    # As tabelas devem ser gerenciadas via 'flask db upgrade'.
-                    print("[AVISO] O usuário master não existe e o banco de dados pode estar vazio. Por favor, execute 'flask db upgrade' primeiro.")
-                    return jsonify({'success': False, 'error': 'Erro na inicialização do usuário master. Tente novamente após aplicar as migrações.'}), 500
-            
-            # Compara a senha do master
-            if hash_password(password) == MASTER_USER['password_hash']:
-                token = generate_token(MASTER_USER['id'])
-                user_data = {k: v for k, v in MASTER_USER.items() if k not in ['password_hash']}
-                user_data['createdAt'] = user_data['createdAt'].isoformat() # Garante formato ISO
-                print(f"[DEBUG] Login master realizado: {email}")
-                return jsonify({
-                    'success': True,
-                    'token': token,
-                    'user': user_data
-                })
-
-        # Buscar usuário normal no banco de dados
-        user = User.query.filter_by(email=email).first()
-
-        if not user or user.password_hash != hash_password(password):
-            print(f"[DEBUG] Email ou senha incorretos para: {email}")
-            return jsonify({'success': False, 'error': 'Email ou senha incorretos'}), 401
-
-        # Gerar token para o usuário normal
-        token = generate_token(user.id)
-
-        # Retorna os dados do usuário, excluindo o hash da senha
-        user_data = user.to_dict(include_password_hash=False)
-
-        print(f"[DEBUG] Login realizado com sucesso: {email}")
-        return jsonify({
-            'success': True,
-            'token': token,
-            'user': user_data
-        })
-
-    except Exception as e:
-        print(f"[ERROR] Erro no login: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/verify-token', methods=['POST'])
-def api_verify_token():
-    """Rota para verificar a validade de um token JWT."""
-    print("[DEBUG] Rota /api/verify-token chamada")
-
-    try:
-        user = get_current_user(request) # Esta função agora obtém o usuário do DB
-
-        if user:
-            # get_current_user já retorna o dicionário com os dados formatados
-            return jsonify({'success': True, 'user': user})
-        else:
-            return jsonify({'success': False, 'error': 'Token inválido ou expirado'}), 401
-
-    except Exception as e:
-        print(f"[ERROR] Erro na verificação de token: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+@app.route('/api/profile', methods=['GET'])
+@login_required
+def get_user_profile():
+    """Rota para obter o perfil do usuário logado."""
+    user = User.query.get(request.user_id) # Acesso a request.user_id do decorator
+    if not user:
+        return jsonify({'success': False, 'message': 'Usuário não encontrado.'}), 404
+    
+    return jsonify({
+        'success': True,
+        'user': {
+            'id': user.id,
+            'name': user.name,
+            'email': user.email,
+            'phone': user.phone,
+            'address': user.address,
+            'role': user.role,
+            'created_at': user.created_at.isoformat()
+        }
+    }), 200
 
 @app.route('/api/orders', methods=['POST'])
-def api_create_order():
-    """Rota para criar um novo pedido de pizza."""
-    print("[DEBUG] Rota /api/orders (POST) chamada")
+@login_required
+def create_order():
+    """Rota para criar um novo pedido."""
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'message': 'Requisição deve ser JSON'}), 400
 
+    items = data.get('items')
+    total = data.get('total')
+
+    if not all([items, total is not None]):
+        return jsonify({'success': False, 'message': 'Itens e total são obrigatórios.'}), 400
+
+    if not isinstance(items, list) or not items:
+        return jsonify({'success': False, 'message': 'Itens deve ser uma lista não vazia.'}), 400
+    
     try:
-        user_data = get_current_user(request)
-        if not user_data:
-            return jsonify({'success': False, 'error': 'Não autenticado'}), 401
-        
-        # Obter o objeto User completo do DB para garantir que temos todos os atributos
-        user = User.query.get(user_data['id'])
-        if not user:
-            return jsonify({'success': False, 'error': 'Usuário não encontrado no banco de dados'}), 500
-
-        data = request.get_json()
-
-        if not data or not data.get('items'):
-            return jsonify({'success': False, 'error': 'Selecione pelo menos uma pizza'}), 400
-
-        total = 0.0
-        order_items = [] # Para armazenar os itens formatados para o pedido
-        for item_name_raw in data['items']:
-            item_name = item_name_raw.strip()
-            found_price = False
-            for key, name in PIZZA_NAMES.items():
-                if name == item_name and key in PIZZA_PRICES:
-                    total += PIZZA_PRICES[key]
-                    order_items.append({"name": name, "price": PIZZA_PRICES[key]}) # Adiciona nome e preço
-                    found_price = True
-                    break
-            if not found_price:
-                return jsonify({'success': False, 'error': f'Item de pizza inválido: {item_name}'}), 400
-
-        if total == 0:
-            return jsonify({'success': False, 'error': 'Nenhuma pizza válida selecionada'}), 400
-
-        # Cria um novo objeto Order
         new_order = Order(
-            user_id=user.id,
-            customer_name=user.name,
-            customer_phone=user.phone,
-            customer_address=user.address,
-            items=order_items, # Salva os itens como uma lista de dicionários
+            user_id=request.user_id, # Pega o ID do usuário do token verificado
+            items=json.dumps(items), # Armazena a lista de itens como uma string JSON
             total=total,
-            status='pendente',
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc)
+            status='pending'
         )
-
-        # Adiciona o novo pedido à sessão do banco de dados e commita
         db.session.add(new_order)
         db.session.commit()
 
-        print(f"[DEBUG] Pedido criado e salvo no DB: ID {new_order.id} para usuário {user.email}")
+        # Registra no histórico
+        history_entry = OrderHistory(order_id=new_order.id, status_change='pending')
+        db.session.add(history_entry)
+        db.session.commit()
 
-        return jsonify({'success': True, 'order': new_order.to_dict()}), 201
-
+        return jsonify({'success': True, 'message': 'Pedido criado com sucesso!', 'order': {
+            'id': new_order.id,
+            'user_id': new_order.user_id,
+            'items': json.loads(new_order.items),
+            'total': new_order.total,
+            'status': new_order.status,
+            'created_at': new_order.created_at.isoformat()
+        }}), 201
     except Exception as e:
         db.session.rollback()
-        print(f"[ERROR] Erro ao criar pedido: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        print(f"Erro ao criar pedido: {e}")
+        return jsonify({'success': False, 'message': 'Erro interno do servidor ao criar pedido.'}), 500
 
-@app.route('/api/my-orders', methods=['GET'])
-def api_my_orders():
-    """Rota para o usuário visualizar seus pedidos ativos."""
-    print("[DEBUG] Rota /api/my-orders (GET) chamada")
+@app.route('/api/orders/<int:order_id>', methods=['GET'])
+@login_required
+def get_order_details(order_id):
+    """Rota para obter detalhes de um pedido específico."""
+    order = Order.query.get(order_id)
+    if not order:
+        return jsonify({'success': False, 'message': 'Pedido não encontrado.'}), 404
+    
+    # Garante que apenas o proprietário do pedido ou um admin pode visualizá-lo
+    if order.user_id != request.user_id and request.user_role != 'admin':
+        return jsonify({'success': False, 'message': 'Acesso negado.'}), 403
 
-    try:
-        user_data = get_current_user(request)
-        if not user_data:
-            return jsonify({'success': False, 'error': 'Não autenticado'}), 401
+    history = OrderHistory.query.filter_by(order_id=order.id).order_by(OrderHistory.timestamp).all()
+    
+    return jsonify({
+        'success': True,
+        'order': {
+            'id': order.id,
+            'user_id': order.user_id,
+            'items': json.loads(order.items),
+            'total': order.total,
+            'status': order.status,
+            'created_at': order.created_at.isoformat(),
+            'updated_at': order.updated_at.isoformat(),
+            'history': [{
+                'status_change': h.status_change,
+                'timestamp': h.timestamp.isoformat()
+            } for h in history]
+        }
+    }), 200
 
-        # Busca todos os pedidos ativos do usuário logado, ordenados pela data de criação (mais recente primeiro)
-        user_orders_db = Order.query.filter_by(user_id=user_data['id']).order_by(Order.created_at.desc()).all()
-        
-        # Converte a lista de objetos Order em uma lista de dicionários formatados para JSON
-        user_orders_json = [order.to_dict() for order in user_orders_db]
-
-        return jsonify({'success': True, 'orders': user_orders_json})
-
-    except Exception as e:
-        print(f"[ERROR] Erro ao buscar pedidos do usuário: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/my-history', methods=['GET'])
-def api_my_history():
-    """Rota para o usuário visualizar seu histórico de pedidos concluídos."""
-    print("[DEBUG] Rota /api/my-history (GET) chamada")
-
-    try:
-        user_data = get_current_user(request)
-        if not user_data:
-            return jsonify({'success': False, 'error': 'Não autenticado'}), 401
-
-        # Busca todos os pedidos do histórico do usuário logado, ordenados pela data de conclusão (mais recente primeiro)
-        user_history_db = OrderHistory.query.filter_by(user_id=user_data['id']).order_by(OrderHistory.completed_at.desc()).all()
-        
-        # Converte a lista de objetos OrderHistory em uma lista de dicionários formatados para JSON
-        user_history_json = [order.to_dict() for order in user_history_db]
-
-        return jsonify({'success': True, 'orders': user_history_json})
-
-    except Exception as e:
-        print(f"[ERROR] Erro ao buscar histórico do usuário: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/pizzas', methods=['GET'])
-def api_pizzas():
-    """Rota para retornar a lista de pizzas e seus preços."""
-    print("[DEBUG] Rota /api/pizzas (GET) chamada")
-
-    try:
-        pizzas = []
-        for key, name in PIZZA_NAMES.items():
-            pizzas.append({
-                'id': key,
-                'name': name,
-                'price': PIZZA_PRICES[key]
-            })
-
-        return jsonify({'success': True, 'pizzas': pizzas})
-
-    except Exception as e:
-        print(f"[ERROR] Erro ao buscar pizzas: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-# --- ROTAS ADMINISTRATIVAS ---
-# Estas rotas requerem que o usuário seja um 'master'.
-
-@app.route('/api/admin/orders', methods=['GET'])
-def api_admin_orders():
-    """Rota para o administrador visualizar todos os pedidos ativos."""
-    print("[DEBUG] Rota /api/admin/orders (GET) chamada")
-
-    try:
-        user = get_current_user(request)
-        if not user or not is_master_user(user):
-            return jsonify({'success': False, 'error': 'Acesso negado. Apenas para administradores.'}), 403
-
-        # Busca todos os pedidos ativos (visível para o admin), ordenados pela data de criação
-        all_orders_db = Order.query.order_by(Order.created_at.desc()).all()
-        
-        # Converte a lista de objetos Order em uma lista de dicionários formatados para JSON
-        all_orders_json = [order.to_dict() for order in all_orders_db]
-
-        return jsonify({'success': True, 'orders': all_orders_json})
-
-    except Exception as e:
-        print(f"[ERROR] Erro ao buscar pedidos para admin: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/admin/orders/<int:order_id>', methods=['PUT'])
-def api_update_order_status(order_id: int):
-    """
-    Rota para o administrador atualizar o status de um pedido.
-    Se o status for 'entregue', o pedido é movido para o histórico.
-    """
-    print(f"[DEBUG] Rota /api/admin/orders/{order_id} (PUT) chamada")
-
-    try:
-        user = get_current_user(request)
-        if not user or not is_master_user(user):
-            return jsonify({'success': False, 'error': 'Acesso negado. Apenas para administradores.'}), 403
-
-        data = request.get_json()
-
-        if not data or 'status' not in data:
-            return jsonify({'success': False, 'error': 'Status é obrigatório no corpo da requisição'}), 400
-
-        new_status = data['status'].strip()
-        valid_statuses = ['pendente', 'preparando', 'saiu-entrega', 'entregue']
-
-        if new_status not in valid_statuses:
-            return jsonify({'success': False, 'error': f'Status inválido. Status permitidos: {", ".join(valid_statuses)}'}), 400
-
-        # Busca o pedido no banco de dados pelo ID
-        order_to_update = Order.query.get(order_id)
-
-        if not order_to_update:
-            return jsonify({'success': False, 'error': f'Pedido com ID {order_id} não encontrado'}), 404
-
-        old_status = order_to_update.status
-        order_to_update.status = new_status
-        order_to_update.updated_at = datetime.now(timezone.utc) # Atualiza a data de modificação
-
-        # Se o pedido foi entregue, move para a tabela de histórico e remove da tabela ativa
-        if new_status == 'entregue':
-            print(f"[DEBUG] Movendo pedido {order_id} para o histórico...")
-            history_entry = OrderHistory(
-                original_order_id=order_to_update.id,
-                user_id=order_to_update.user_id,
-                customer_name=order_to_update.customer_name,
-                customer_phone=order_to_update.customer_phone,
-                customer_address=order_to_update.customer_address,
-                items=order_to_update.items,
-                total=order_to_update.total,
-                status=new_status,
-                created_at=order_to_update.created_at,
-                completed_at=datetime.now(timezone.utc) # Data de conclusão é agora
-            )
-            db.session.add(history_entry)
-            db.session.delete(order_to_update) # Remove o pedido da tabela de pedidos ativos
-            db.session.commit() # Commita a transação completa (add histórico, delete ativo)
-            
-            print(f"[DEBUG] Pedido {order_id} movido para histórico com sucesso.")
-            # Retorna o pedido que acabou de ser movido para o histórico
-            updated_order_data = history_entry.to_dict()
-        else:
-            db.session.commit() # Apenas commita a atualização de status na tabela ativa
-            print(f"[DEBUG] Pedido {order_id} atualizado no DB: {old_status} → {new_status}")
-            updated_order_data = order_to_update.to_dict() # Retorna o pedido atualizado
-
-        return jsonify({
-            'success': True,
-            'message': f'Status do pedido {order_id} atualizado para "{new_status}"',
-            'order': updated_order_data
+@app.route('/api/orders', methods=['GET'])
+@login_required
+def get_user_orders():
+    """Rota para listar todos os pedidos do usuário logado (ou todos se for admin)."""
+    if request.user_role == 'admin':
+        orders = Order.query.all()
+    else:
+        orders = Order.query.filter_by(user_id=request.user_id).all()
+    
+    orders_data = []
+    for order in orders:
+        orders_data.append({
+            'id': order.id,
+            'user_id': order.user_id,
+            'items': json.loads(order.items),
+            'total': order.total,
+            'status': order.status,
+            'created_at': order.created_at.isoformat()
         })
+    return jsonify({'success': True, 'orders': orders_data}), 200
 
-    except Exception as e:
-        db.session.rollback() # Desfaz a transação em caso de erro
-        print(f"[ERROR] Erro ao atualizar pedido {order_id}: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+@app.route('/api/orders/<int:order_id>/status', methods=['PUT'])
+@admin_required
+def update_order_status(order_id):
+    """Rota para admins atualizarem o status de um pedido."""
+    data = request.get_json()
+    if not data or 'status' not in data:
+        return jsonify({'success': False, 'message': 'Status é obrigatório.'}), 400
 
-@app.route('/api/admin/stats', methods=['GET'])
-def api_admin_stats():
-    """Rota para o administrador visualizar estatísticas gerais da pizzaria."""
-    print("[DEBUG] Rota /api/admin/stats (GET) chamada")
+    order = Order.query.get(order_id)
+    if not order:
+        return jsonify({'success': False, 'message': 'Pedido não encontrado.'}), 404
+
+    new_status = data['status']
+    valid_statuses = ['pending', 'preparing', 'delivered', 'cancelled']
+    if new_status not in valid_statuses:
+        return jsonify({'success': False, 'message': 'Status inválido.'}), 400
 
     try:
-        user = get_current_user(request)
-        if not user or not is_master_user(user):
-            return jsonify({'success': False, 'error': 'Acesso negado. Apenas para administradores.'}), 403
+        order.status = new_status
+        db.session.add(order)
+        db.session.commit()
 
-        # Calcular estatísticas diretamente do banco de dados
-        total_users = User.query.count()
-        total_active_orders = Order.query.count()
-        total_completed_orders = OrderHistory.query.count()
+        # Registra no histórico
+        history_entry = OrderHistory(order_id=order.id, status_change=new_status)
+        db.session.add(history_entry)
+        db.session.commit()
 
-        # Estatísticas por status de pedidos ativos
-        status_counts = db.session.query(Order.status, func.count(Order.id)).group_by(Order.status).all()
-        status_breakdown = {status: count for status, count in status_counts}
-
-        # Receita total (de pedidos no histórico)
-        total_revenue_result = db.session.query(func.sum(OrderHistory.total)).scalar()
-        total_revenue = float(total_revenue_result) if total_revenue_result is not None else 0.0
-
-        # Receita pendente (de pedidos ativos)
-        pending_revenue_result = db.session.query(func.sum(Order.total)).scalar()
-        pending_revenue = float(pending_revenue_result) if pending_revenue_result is not None else 0.0
-
-        return jsonify({
-            'success': True,
-            'stats': {
-                'users': total_users,
-                'active_orders': total_active_orders,
-                'completed_orders': total_completed_orders,
-                'status_breakdown': status_breakdown,
-                'total_revenue': total_revenue,
-                'pending_revenue': pending_revenue
-            }
-        })
-
+        return jsonify({'success': True, 'message': 'Status do pedido atualizado com sucesso!', 'order': {
+            'id': order.id,
+            'status': order.status,
+            'updated_at': order.updated_at.isoformat()
+        }}), 200
     except Exception as e:
-        print(f"[ERROR] Erro ao buscar estatísticas: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        db.session.rollback()
+        print(f"Erro ao atualizar status do pedido: {e}")
+        return jsonify({'success': False, 'message': 'Erro interno do servidor ao atualizar status.'}), 500
 
-# --- ROTAS DE SERVIÇO DE ARQUIVOS ESTÁTICOS ---
-# Estas rotas servem os arquivos HTML, CSS e JavaScript para o frontend.
-
-@app.route('/admin.html')
-def admin_page():
-    """Serve a página HTML do painel administrativo."""
-    print("[DEBUG] Servindo admin.html")
-    try:
-        return render_template('admin.html')
-    except Exception:
-        return "admin.html não encontrado no diretório 'templates'", 404
-
-@app.route('/admin')
-def admin_redirect():
-    """Redireciona de /admin para /admin.html."""
-    print("[DEBUG] Redirecionando /admin para /admin.html")
-    return redirect(url_for('admin_page'))
+# --- Rotas para o Frontend (HTML) ---
+# Em um projeto Vercel, o ideal é servir os arquivos estáticos diretamente,
+# mas estas rotas podem ser úteis para debug ou se você não usar Vercel's Static Output.
 
 @app.route('/')
 def index():
-    """Serve a página HTML principal da aplicação."""
-    print("[DEBUG] Servindo index.html")
-    try:
-        return render_template('index.html')
-    except Exception:
-        return "index.html não encontrado no diretório 'templates'", 404
+    return render_template('index.html')
 
-
-
-@app.route('/debug.html')
+@app.route('/debug')
 def debug_page():
-    """Serve a página HTML de debug."""
-    print("[DEBUG] Servindo debug.html")
-    try:
-        return render_template('debug.html')
-    except Exception:
-        return "debug.html não encontrado no diretório 'templates'", 404
+    return render_template('debug.html')
 
-@app.route('/test.html')
-def test_page():
-    """Serve a página HTML de teste."""
-    print("[DEBUG] Servindo test.html")
-    try:
-        return render_template('test.html')
-    except Exception:
-        return "test.html não encontrado no diretório 'templates'", 404
+@app.route('/admin')
+def admin_page():
+    return render_template('admin.html')
 
-@app.route('/test-simple.html')
-def test_simple():
-    """Serve uma página HTML de teste simplificada."""
-    print("[DEBUG] Servindo test-simple.html")
-    try:
-        return render_template('test-simple.html')
-    except Exception:
-        return "test-simple.html não encontrado no diretório 'templates'", 404
+# Rota para servir arquivos estáticos (CSS, JS, imagens)
+# No Vercel, o diretório 'static' geralmente é servido automaticamente.
+# Esta rota é mais para uso local ou para garantir.
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    return send_from_directory('static', filename)
 
-# --- TRATAMENTO DE ERROS GLOBAIS ---
-
+# Tratamento de erros
 @app.errorhandler(404)
-def not_found(error):
-    """Manipulador de erro para rotas não encontradas (404 Not Found)."""
-    print(f"[ERROR] Rota não encontrada: {request.path}")
-    return jsonify({'success': False, 'error': 'Rota não encontrada. Verifique o URL.'}), 404
+def not_found_error(error):
+    return jsonify({'success': False, 'error': 'Recurso não encontrado.'}), 404
 
 @app.errorhandler(500)
 def internal_error(error):
-    """Manipulador de erro para erros internos do servidor (500 Internal Server Error)."""
-    db.session.rollback() # Garante que transações pendentes sejam desfeitas em caso de erro 500
-    print(f"[ERROR] Erro interno do servidor: {error}")
-    # Em produção, você pode querer um log mais detalhado e uma mensagem menos específica para o usuário
+    db.session.rollback() # Garante que a sessão do DB seja resetada em caso de erro
     return jsonify({'success': False, 'error': 'Erro interno do servidor. Tente novamente mais tarde.'}), 500
 
 # --- Bloco de Inicialização e Execução do Aplicativo ---
-# ... (todo o seu código anterior) ...
-
-# --- Bloco de Inicialização e Execução do Aplicativo ---
-# A função initialize_database() deve ser chamada apenas uma vez para configurar o DB e o usuário master.
-# Em um ambiente serverless como o Vercel, é mais seguro gerenciar isso externamente
-# (ex: via script de deploy ou CLI do Flask-Migrate após o deploy).
-# No entanto, para simplicidade inicial, você pode deixá-la aqui para garantir que o master user exista
-# quando a função serverless for 'aquecida' pela primeira vez, mas esteja ciente das implicações.
-# Caso haja erro ou duplicação, considere remover esta chamada para produção e fazer as migrações manualmente.
-# Para evitar tentativas repetitivas de criação do usuário master, a lógica dentro de initialize_database
-# já verifica se o usuário existe, o que ajuda a mitigar o problema.
-
-# initialize_database() # <-- Descomente ISSO COM CAUTELA se você quiser que o master user seja verificado/criado a cada cold start no Vercel.
-                         # Mas o ideal é fazer a criação e migração do DB uma única vez manualmente.
-
-
-    # Este bloco é executado APENAS quando você roda o app.py localmente.
-    # A inicialização do usuário master está aqui para o ambiente de desenvolvimento.
-    initialize_database()
+if __name__ == '__main__':
+    # IMPORTANTE PARA VERCEL:
+    # A chamada 'initialize_database()' deve ser feita MANUALMENTE via 'flask db upgrade'
+    # apontando para o seu banco de dados Supabase antes do deploy.
+    # Evitar chamar diretamente aqui evita problemas de cold start e acesso ao DB.
+    # initialize_database() # <-- Esta linha foi COMENTADA para o deploy no Vercel.
 
     base_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -830,5 +479,4 @@ def internal_error(error):
             print(f"    ❌ {file_path} - NÃO ENCONTRADO (Verifique se estão em 'templates' ou em 'static/css' / 'static/js')")
     
     print("\n🐱 Servidor Flask rodando! Acesse http://127.0.0.1:5000")
-    # A linha abaixo é APENAS para execução local e deve ser ignorada pelo Vercel.
     app.run(debug=True, host='0.0.0.0', port=5000)
