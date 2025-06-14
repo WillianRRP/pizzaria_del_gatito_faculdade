@@ -53,8 +53,8 @@
     }
   ],
   "env": {
-    "DATABASE_URL": "@pizza-del-gatito-database-url",
-    "SECRET_KEY": "@pizza-del-gatito-secret-key"
+    "DATABASE_URL": "@pizza_del_gatito_database_url",  
+    "SECRET_KEY": "@pizza_del_gatito_secret_key"    
   },
   "outputDirectory": "."
 }
