@@ -1,0 +1,19 @@
+[
+  {
+    "id": 5,
+    "userId": 4,
+    "customerName": "willian rodrigues",
+    "customerPhone": "5193065239",
+    "customerAddress": "Rua vitor silva\npiratini",
+    "items": [
+      "Margherita",
+      "Pepperoni",
+      "Calabresa",
+      "Quatro Queijos"
+    ],
+    "total": 115.0,
+    "status": "preparando",
+    "createdAt": "2025-06-12T22:37:21.026771",
+    "updatedAt": "2025-06-12T22:37:33.880427"
+  }
+]

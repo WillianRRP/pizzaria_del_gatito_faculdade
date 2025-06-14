@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Simples - Content-Type</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        button { padding: 10px 20px; margin: 10px; background: #ff6b35; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .result { background: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 5px; white-space: pre-wrap; }
+        .success { border-left: 4px solid green; }
+        .error { border-left: 4px solid red; }
+    </style>
+</head>
+<body>
+    <h1>🍕 Teste Simples - Content-Type</h1>
+    
+    <button onclick="testBasic()">1. Teste Básico (GET)</button>
+    <button onclick="testRegisterCorrect()">2. Teste Cadastro (Correto)</button>
+    <button onclick="testRegisterWrong()">3. Teste Cadastro (Sem Content-Type)</button>
+    
+    <div id="result" class="result">Clique nos botões para testar...</div>
+
+    <script>
+        function showResult(message, isSuccess = true) {
+            const element = document.getElementById('result');
+            element.textContent = message;
+            element.className = `result ${isSuccess ? 'success' : 'error'}`;
+        }
+
+        // Teste 1: GET simples
+        function testBasic() {
+            fetch('/api/test')
+                .then(response => {
+                    console.log('Response headers:', response.headers);
+                    return response.json();
+                })
+                .then(data => {
+                    showResult(`✅ GET funcionou!\n${JSON.stringify(data, null, 2)}`);
+                })
+                .catch(error => {
+                    showResult(`❌ Erro no GET:\n${error.message}`, false);
+                });
+        }
+
+        // Teste 2: POST com Content-Type correto
+        function testRegisterCorrect() {
+            const userData = {
+                name: 'Teste User',
+                email: 'teste@test.com',
+                phone: '(51) 99999-9999',
+                address: 'Rua Teste, 123',
+                password: '123456'
+            };
+
+            fetch('/api/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(userData)
+            })
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    console.log('Response headers:', response.headers);
+                    return response.json();
+                })
+                .then(data => {
+                    showResult(`✅ POST com Content-Type funcionou!\n${JSON.stringify(data, null, 2)}`);
+                })
+                .catch(error => {
+                    showResult(`❌ Erro no POST:\n${error.message}`, false);
+                });
+        }
+
+        // Teste 3: POST sem Content-Type (para reproduzir o erro)
+        function testRegisterWrong() {
+            const userData = {
+                name: 'Teste User 2',
+                email: 'teste2@test.com',
+                phone: '(51) 88888-8888',
+                address: 'Rua Teste 2, 456',
+                password: '123456'
+            };
+
+            fetch('/api/register', {
+                method: 'POST',
+                // SEM Content-Type header
+                body: JSON.stringify(userData)
+            })
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    showResult(`⚠️ POST sem Content-Type:\n${JSON.stringify(data, null, 2)}`);
+                })
+                .catch(error => {
+                    showResult(`❌ Erro esperado no POST sem Content-Type:\n${error.message}`, false);
+                });
+        }
+    </script>
+</body>
+</html>

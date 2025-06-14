@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Pizzaria Del Gatito</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        .admin-header {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+        .admin-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #dc3545;
+        }
+        .stat-label {
+            color: #666;
+            margin-top: 0.5rem;
+        }
+        .status-buttons {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .status-btn {
+            padding: 0.3rem 0.8rem;
+            border: none;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .status-btn.pendente { background: #ffc107; color: #000; }
+        .status-btn.preparando { background: #17a2b8; color: white; }
+        .status-btn.saiu-entrega { background: #28a745; color: white; }
+        .status-btn.entregue { background: #6c757d; color: white; }
+        .admin-login {
+            max-width: 400px;
+            margin: 2rem auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- Tela de Login Admin -->
+    <div id="admin-login-screen" class="auth-screen">
+        <div class="admin-login">
+            <div class="auth-header">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <span class="cat-emoji">🐱</span>
+                        <span class="pizza-emoji">🍕</span>
+                    </div>
+                    <div class="logo-text">
+                        <h1>Admin - Pizzaria Del Gatito</h1>
+                        <p>Painel Administrativo</p>
+                    </div>
+                </div>
+            </div>
+
+            <form id="admin-login-form">
+                <div class="form-group">
+                    <label for="admin-email">E-mail</label>
+                    <input type="email" id="admin-email" value="master@pizzaria.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="admin-password">Senha</label>
+                    <input type="password" id="admin-password" value="master123" required>
+                </div>
+                <button type="submit" class="btn-primary full-width">
+                    <span class="material-icons">admin_panel_settings</span>
+                    Entrar como Admin
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Painel Admin -->
+    <div id="admin-panel" class="main-app" style="display: none;">
+        <header class="header admin-header">
+            <div class="container">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <span class="cat-emoji">🐱</span>
+                        <span class="pizza-emoji">🍕</span>
+                    </div>
+                    <div class="logo-text">
+                        <h1>Admin - Pizzaria Del Gatito</h1>
+                        <p>Painel Administrativo</p>
+                    </div>
+                </div>
+                <div class="header-user">
+                    <span class="user-welcome">Admin: <span id="admin-name"></span></span>
+                    <button class="btn-logout" onclick="adminLogout()">
+                        <span class="material-icons">logout</span>
+                        Sair
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="main">
+            <div class="container">
+                <!-- Estatísticas -->
+                <section class="section active">
+                    <div class="section-header">
+                        <h2>Dashboard Administrativo</h2>
+                        <button class="btn-primary" onclick="loadAdminData()">
+                            <span class="material-icons">refresh</span>
+                            Atualizar
+                        </button>
+                    </div>
+
+                    <div class="admin-stats" id="admin-stats">
+                        <!-- Estatísticas serão carregadas aqui -->
+                    </div>
+
+                    <div class="section-header">
+                        <h2>Gerenciar Pedidos</h2>
+                    </div>
+
+                    <div class="orders-grid" id="admin-orders-container">
+                        <!-- Pedidos serão carregados aqui -->
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let currentAdmin = null;
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAdminAuth();
+            setupAdminEventListeners();
+        });
+
+        function setupAdminEventListeners() {
+            document.getElementById('admin-login-form').addEventListener('submit', handleAdminLogin);
+        }
+
+        async function checkAdminAuth() {
+            const token = localStorage.getItem('adminToken');
+            if (token) {
+                try {
+                    const response = await fetch('/api/verify-token', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    const data = await response.json();
+                    
+                    if (data.success && data.user.role === 'master') {
+                        currentAdmin = data.user;
+                        showAdminPanel();
+                    } else {
+                        localStorage.removeItem('adminToken');
+                        showAdminLogin();
+                    }
+                } catch (error) {
+                    localStorage.removeItem('adminToken');
+                    showAdminLogin();
+                }
+            } else {
+                showAdminLogin();
+            }
+        }
+
+        function showAdminLogin() {
+            document.getElementById('admin-login-screen').style.display = 'flex';
+            document.getElementById('admin-panel').style.display = 'none';
+        }
+
+        function showAdminPanel() {
+            document.getElementById('admin-login-screen').style.display = 'none';
+            document.getElementById('admin-panel').style.display = 'block';
+            document.getElementById('admin-name').textContent = currentAdmin.name;
+            loadAdminData();
+        }
+
+        async function handleAdminLogin(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('admin-email').value;
+            const password = document.getElementById('admin-password').value;
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.user.role === 'master') {
+                    localStorage.setItem('adminToken', data.token);
+                    currentAdmin = data.user;
+                    showAdminPanel();
+                    showNotification('Login admin realizado com sucesso!', 'success');
+                } else {
+                    showNotification('Credenciais de admin inválidas', 'error');
+                }
+            } catch (error) {
+                showNotification('Erro de conexão', 'error');
+            }
+        }
+
+        function adminLogout() {
+            localStorage.removeItem('adminToken');
+            currentAdmin = null;
+            showAdminLogin();
+            showNotification('Logout realizado com sucesso!', 'info');
+        }
+
+        async function loadAdminData() {
+            const token = localStorage.getItem('adminToken');
+            
+            try {
+                // Carregar estatísticas
+                const statsResponse = await fetch('/api/admin/stats', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const statsData = await statsResponse.json();
+                
+                if (statsData.success) {
+                    renderAdminStats(statsData.stats);
+                }
+
+                // Carregar pedidos
+                const ordersResponse = await fetch('/api/admin/orders', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const ordersData = await ordersResponse.json();
+                
+                if (ordersData.success) {
+                    renderAdminOrders(ordersData.orders);
+                }
+            } catch (error) {
+                showNotification('Erro ao carregar dados', 'error');
+            }
+        }
+
+        function renderAdminStats(stats) {
+            const container = document.getElementById('admin-stats');
+            container.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-number">${stats.users}</div>
+                    <div class="stat-label">Clientes</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.active_orders}</div>
+                    <div class="stat-label">Pedidos Ativos</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.completed_orders}</div>
+                    <div class="stat-label">Pedidos Entregues</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">R$ ${stats.total_revenue.toFixed(2)}</div>
+                    <div class="stat-label">Receita Total</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">R$ ${stats.pending_revenue.toFixed(2)}</div>
+                    <div class="stat-label">Receita Pendente</div>
+                </div>
+            `;
+        }
+
+        function renderAdminOrders(orders) {
+            const container = document.getElementById('admin-orders-container');
+            
+            if (orders.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="emoji">📋</div>
+                        <h3>Nenhum pedido ativo</h3>
+                        <p>Todos os pedidos foram entregues</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = orders.map(order => createAdminOrderCard(order)).join('');
+        }
+
+        function createAdminOrderCard(order) {
+            const statusClass = `status-${order.status.replace('-', '-')}`;
+            const statusText = getStatusText(order.status);
+
+            return `
+                <div class="order-card">
+                    <div class="order-header">
+                        <div class="order-id">Pedido #${order.id}</div>
+                        <div class="order-status ${statusClass}">${statusText}</div>
+                    </div>
+                    <div class="order-info">
+                        <p><strong>Cliente:</strong> ${order.customerName}</p>
+                        <p><strong>Telefone:</strong> ${order.customerPhone}</p>
+                        <p><strong>Endereço:</strong> ${order.customerAddress}</p>
+                        <p><strong>Data:</strong> ${formatDate(new Date(order.createdAt))}</p>
+                    </div>
+                    <div class="order-items">
+                        <h4>Itens do Pedido:</h4>
+                        <ul>
+                            ${order.items.map(item => `<li>• ${item}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <div class="order-total">
+                        Total: R$ ${order.total.toFixed(2)}
+                    </div>
+                    <div class="status-buttons">
+                        <button class="status-btn pendente" onclick="updateOrderStatus(${order.id}, 'pendente')">
+                            Pendente
+                        </button>
+                        <button class="status-btn preparando" onclick="updateOrderStatus(${order.id}, 'preparando')">
+                            Preparando
+                        </button>
+                        <button class="status-btn saiu-entrega" onclick="updateOrderStatus(${order.id}, 'saiu-entrega')">
+                            Saiu p/ Entrega
+                        </button>
+                        <button class="status-btn entregue" onclick="updateOrderStatus(${order.id}, 'entregue')">
+                            Entregue
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function updateOrderStatus(orderId, newStatus) {
+            const token = localStorage.getItem('adminToken');
+            
+            try {
+                const response = await fetch(`/api/admin/orders/${orderId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status: newStatus })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showNotification(`Pedido #${orderId} atualizado para ${getStatusText(newStatus)}`, 'success');
+                    loadAdminData(); // Recarregar dados
+                } else {
+                    showNotification(data.error || 'Erro ao atualizar pedido', 'error');
+                }
+            } catch (error) {
+                showNotification('Erro de conexão', 'error');
+            }
+        }
+
+        function getStatusText(status) {
+            const statusMap = {
+                'pendente': 'Pendente',
+                'preparando': 'Preparando',
+                'saiu-entrega': 'Saiu p/ Entrega',
+                'entregue': 'Entregue'
+            };
+            return statusMap[status] || status;
+        }
+
+        function formatDate(date) {
+            return date.toLocaleString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.textContent = message;
+            notification.style.animation = 'slideIn 0.3s ease';
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => {
+                    if (document.body.contains(notification)) {
+                        document.body.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

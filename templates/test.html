@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste - Pizzaria Del Gatito</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #ff6b35;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #f7931e;
+        }
+        .result {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+        }
+        .success { border-left: 4px solid #28a745; }
+        .error { border-left: 4px solid #dc3545; }
+    </style>
+</head>
+<body>
+    <h1>🍕 Teste do Sistema - Pizzaria Del Gatito</h1>
+    
+    <div class="test-section">
+        <h2>1. Teste de Conexão</h2>
+        <button onclick="testConnection()">Testar Conexão</button>
+        <div id="connection-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Teste de Cadastro</h2>
+        <button onclick="testRegister()">Cadastrar Usuário Teste</button>
+        <div id="register-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Teste de Login</h2>
+        <button onclick="testLogin()">Fazer Login</button>
+        <div id="login-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Teste de Pedido</h2>
+        <button onclick="testOrder()">Criar Pedido Teste</button>
+        <div id="order-result" class="result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>5. Listar Arquivos</h2>
+        <button onclick="testFiles()">Testar Arquivos Estáticos</button>
+        <div id="files-result" class="result"></div>
+    </div>
+
+    <script>
+        let testToken = null;
+
+        function showResult(elementId, message, isSuccess = true) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `result ${isSuccess ? 'success' : 'error'}`;
+        }
+
+        function testConnection() {
+            fetch('/api/test')
+                .then(response => response.json())
+                .then(data => {
+                    showResult('connection-result', `✅ Conexão OK!\n${JSON.stringify(data, null, 2)}`);
+                })
+                .catch(error => {
+                    showResult('connection-result', `❌ Erro de conexão:\n${error.message}`, false);
+                });
+        }
+
+        function testRegister() {
+            const userData = {
+                name: 'Usuário Teste',
+                email: 'teste@email.com',
+                phone: '(51) 99999-9999',
+                address: 'Rua Teste, 123',
+                password: '123456'
+            };
+
+            fetch('/api/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(userData)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showResult('register-result', `✅ Cadastro realizado!\n${JSON.stringify(data, null, 2)}`);
+                    } else {
+                        showResult('register-result', `⚠️ Resposta do cadastro:\n${JSON.stringify(data, null, 2)}`);
+                    }
+                })
+                .catch(error => {
+                    showResult('register-result', `❌ Erro no cadastro:\n${error.message}`, false);
+                });
+        }
+
+        function testLogin() {
+            const loginData = {
+                email: 'teste@email.com',
+                password: '123456'
+            };
+
+            fetch('/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(loginData)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        testToken = data.token;
+                        showResult('login-result', `✅ Login realizado!\nToken: ${data.token.substring(0, 50)}...\nUsuário: ${data.user.name}`);
+                    } else {
+                        showResult('login-result', `❌ Erro no login:\n${JSON.stringify(data, null, 2)}`, false);
+                    }
+                })
+                .catch(error => {
+                    showResult('login-result', `❌ Erro no login:\n${error.message}`, false);
+                });
+        }
+
+        function testOrder() {
+            if (!testToken) {
+                showResult('order-result', '❌ Faça login primeiro!', false);
+                return;
+            }
+
+            const orderData = {
+                items: ['Margherita', 'Pepperoni'],
+                total: 55.00
+            };
+
+            fetch('/api/orders', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${testToken}`
+                },
+                body: JSON.stringify(orderData)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showResult('order-result', `✅ Pedido criado!\n${JSON.stringify(data.order, null, 2)}`);
+                    } else {
+                        showResult('order-result', `❌ Erro no pedido:\n${JSON.stringify(data, null, 2)}`, false);
+                    }
+                })
+                .catch(error => {
+                    showResult('order-result', `❌ Erro no pedido:\n${error.message}`, false);
+                });
+        }
+
+        function testFiles() {
+            const files = ['/', '/styles.css', '/script.js'];
+            let results = [];
+
+            Promise.all(files.map(file => 
+                fetch(file)
+                    .then(response => ({
+                        file: file,
+                        status: response.status,
+                        ok: response.ok
+                    }))
+                    .catch(error => ({
+                        file: file,
+                        status: 'ERROR',
+                        ok: false,
+                        error: error.message
+                    }))
+            )).then(results => {
+                const resultText = results.map(r => 
+                    `${r.file}: ${r.ok ? '✅' : '❌'} ${r.status} ${r.error || ''}`
+                ).join('\n');
+                
+                showResult('files-result', resultText);
+            });
+        }
+
+        // Teste automático ao carregar
+        window.onload = function() {
+            console.log('Página de teste carregada');
+            testConnection();
+        };
+    </script>
+</body>
+</html>

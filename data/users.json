@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "name": "João Teste",
+    "email": "joao@teste.com",
+    "phone": "(51) 99999-9999",
+    "address": "Rua Teste, 123",
+    "password": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+    "createdAt": "2025-06-12T06:05:41.390618"
+  },
+  {
+    "id": 2,
+    "name": "willian rodrigues",
+    "email": "desukira777@gmail.com",
+    "phone": "5193065239",
+    "address": "Rua vitor silva\npiratini",
+    "password": "e46240714b5db3a23eee60479a623efba4d633d27fe4f03c904b9e219a7fbe60",
+    "createdAt": "2025-06-12T06:24:20.501357"
+  },
+  {
+    "id": 3,
+    "name": "willian rodrigues",
+    "email": "teste@gmail.com",
+    "phone": "5193065239",
+    "address": "Rua vitor silva\npiratini",
+    "password": "ed02457b5c41d964dbd2f2a609d63fe1bb7528dbe55e1abf5b52c249cd735797",
+    "createdAt": "2025-06-12T06:24:52.399716"
+  },
+  {
+    "id": 4,
+    "name": "willian rodrigues",
+    "email": "test12@gmail.com",
+    "phone": "5193065239",
+    "address": "Rua vitor silva\npiratini",
+    "password": "ed02457b5c41d964dbd2f2a609d63fe1bb7528dbe55e1abf5b52c249cd735797",
+    "createdAt": "2025-06-12T06:32:43.707726"
+  }
+]

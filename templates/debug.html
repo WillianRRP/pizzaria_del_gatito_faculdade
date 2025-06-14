@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug - Pizzaria</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        button { padding: 10px; margin: 5px; background: #ff6b35; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        .result { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 3px; white-space: pre-wrap; }
+        .success { border-left: 3px solid green; }
+        .error { border-left: 3px solid red; }
+    </style>
+</head>
+<body>
+    <h1>🍕 Debug Pizzaria</h1>
+    
+    <h3>Testes Básicos:</h3>
+    <button onclick="testGet()">GET /api/test</button>
+    <button onclick="testRegister()">POST /api/register</button>
+    <button onclick="testLogin()">POST /api/login</button>
+    
+    <div id="result" class="result">Clique nos botões para testar...</div>
+
+    <script>
+        function log(message, isSuccess = true) {
+            const div = document.getElementById('result');
+            div.textContent = message;
+            div.className = `result ${isSuccess ? 'success' : 'error'}`;
+            console.log(message);
+        }
+
+        async function testGet() {
+            try {
+                console.log('Testando GET /api/test...');
+                const response = await fetch('/api/test');
+                console.log('Response status:', response.status);
+                console.log('Response headers:', [...response.headers.entries()]);
+                
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                log(`✅ GET funcionou!\nStatus: ${response.status}\nData: ${JSON.stringify(data, null, 2)}`);
+            } catch (error) {
+                console.error('Erro no GET:', error);
+                log(`❌ Erro no GET:\n${error.message}`, false);
+            }
+        }
+
+        async function testRegister() {
+            try {
+                console.log('Testando POST /api/register...');
+                
+                const userData = {
+                    name: 'João Teste',
+                    email: 'joao@teste.com',
+                    phone: '(51) 99999-9999',
+                    address: 'Rua Teste, 123',
+                    password: '123456'
+                };
+                
+                console.log('Enviando dados:', userData);
+                
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(userData)
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', [...response.headers.entries()]);
+                
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                if (data.success) {
+                    log(`✅ Cadastro funcionou!\nStatus: ${response.status}\nData: ${JSON.stringify(data, null, 2)}`);
+                } else {
+                    log(`⚠️ Cadastro retornou erro:\nStatus: ${response.status}\nData: ${JSON.stringify(data, null, 2)}`);
+                }
+            } catch (error) {
+                console.error('Erro no cadastro:', error);
+                log(`❌ Erro no cadastro:\n${error.message}`, false);
+            }
+        }
+
+        async function testLogin() {
+            try {
+                console.log('Testando POST /api/login...');
+                
+                const loginData = {
+                    email: 'joao@teste.com',
+                    password: '123456'
+                };
+                
+                console.log('Enviando dados:', loginData);
+                
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(loginData)
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', [...response.headers.entries()]);
+                
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                if (data.success) {
+                    log(`✅ Login funcionou!\nStatus: ${response.status}\nToken: ${data.token.substring(0, 20)}...\nUser: ${data.user.name}`);
+                } else {
+                    log(`⚠️ Login retornou erro:\nStatus: ${response.status}\nData: ${JSON.stringify(data, null, 2)}`);
+                }
+            } catch (error) {
+                console.error('Erro no login:', error);
+                log(`❌ Erro no login:\n${error.message}`, false);
+            }
+        }
+
+        // Teste automático ao carregar
+        window.onload = function() {
+            console.log('Página debug carregada');
+            console.log('URL atual:', window.location.href);
+        };
+    </script>
+</body>
+</html>

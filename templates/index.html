@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pizzaria Del Gatito - Alvorada Piratini</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+<body>
+    <!-- Tela de Login/Cadastro -->
+    <div id="auth-screen" class="auth-screen">
+        <div class="auth-container">
+            <div class="auth-header">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <span class="cat-emoji">🐱</span>
+                        <span class="pizza-emoji">🍕</span>
+                    </div>
+                    <div class="logo-text">
+                        <h1>Pizzaria Del Gatito</h1>
+                        <p>Alvorada Piratini</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="auth-forms">
+                <!-- Formulário de Login -->
+                <div id="login-form" class="auth-form active">
+                    <h2>Entrar na sua conta</h2>
+                    <form id="login-form-element">
+                        <div class="form-group">
+                            <label for="login-email">E-mail</label>
+                            <input type="email" id="login-email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="login-password">Senha</label>
+                            <input type="password" id="login-password" required>
+                        </div>
+                        <button type="submit" class="btn-primary full-width">
+                            <span class="material-icons">login</span>
+                            Entrar
+                        </button>
+                    </form>
+                    <p class="auth-switch">
+                        Não tem conta? 
+                        <a href="#" onclick="showRegisterForm()">Cadastre-se aqui</a>
+                    </p>
+                </div>
+
+                <!-- Formulário de Cadastro -->
+                <div id="register-form" class="auth-form">
+                    <h2>Criar nova conta</h2>
+                    <form id="register-form-element">
+                        <div class="form-group">
+                            <label for="register-name">Nome completo</label>
+                            <input type="text" id="register-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="register-email">E-mail</label>
+                            <input type="email" id="register-email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="register-phone">Telefone</label>
+                            <input type="tel" id="register-phone" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="register-address">Endereço</label>
+                            <textarea id="register-address" rows="3" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="register-password">Senha</label>
+                            <input type="password" id="register-password" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="register-confirm-password">Confirmar senha</label>
+                            <input type="password" id="register-confirm-password" required>
+                        </div>
+                        <button type="submit" class="btn-primary full-width">
+                            <span class="material-icons">person_add</span>
+                            Cadastrar
+                        </button>
+                    </form>
+                    <p class="auth-switch">
+                        Já tem conta? 
+                        <a href="#" onclick="showLoginForm()">Entre aqui</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aplicação Principal -->
+    <div id="main-app" class="main-app" style="display: none;">
+        <header class="header">
+            <div class="container">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <span class="cat-emoji">🐱</span>
+                        <span class="pizza-emoji">🍕</span>
+                    </div>
+                    <div class="logo-text">
+                        <h1>Pizzaria Del Gatito</h1>
+                        <p>Alvorada Piratini</p>
+                    </div>
+                </div>
+                <div class="header-user">
+                    <span class="user-welcome">Olá, <span id="user-name"></span>!</span>
+                    <button class="btn-logout" onclick="logout()">
+                        <span class="material-icons">logout</span>
+                        Sair
+                    </button>
+                </div>
+                <nav class="nav">
+                    <button class="nav-btn active" data-section="meus-pedidos">
+                        <span class="material-icons">restaurant</span>
+                        Meus Pedidos
+                    </button>
+                    <button class="nav-btn" data-section="fazer-pedido">
+                        <span class="material-icons">add_circle</span>
+                        Fazer Pedido
+                    </button>
+                    <button class="nav-btn" data-section="meu-historico">
+                        <span class="material-icons">history</span>
+                        Meu Histórico
+                    </button>
+                </nav>
+            </div>
+        </header>
+
+        <main class="main">
+            <div class="container">
+                <!-- Seção Meus Pedidos -->
+                <section id="meus-pedidos" class="section active">
+                    <div class="section-header">
+                        <h2>Meus Pedidos Atuais</h2>
+                        <button class="btn-primary" onclick="showSection('fazer-pedido')">
+                            <span class="material-icons">add</span>
+                            Novo Pedido
+                        </button>
+                    </div>
+                    <div class="orders-grid" id="my-orders-container">
+                        <!-- Pedidos do cliente serão carregados aqui -->
+                    </div>
+                </section>
+
+                <!-- Seção Fazer Pedido -->
+                <section id="fazer-pedido" class="section">
+                    <div class="section-header">
+                        <h2>Fazer Novo Pedido</h2>
+                    </div>
+                    <form class="order-form" id="order-form">
+                        <div class="customer-info">
+                            <h3>Seus dados</h3>
+                            <div class="customer-display">
+                                <p><strong>Nome:</strong> <span id="customer-display-name"></span></p>
+                                <p><strong>Telefone:</strong> <span id="customer-display-phone"></span></p>
+                                <p><strong>Endereço:</strong> <span id="customer-display-address"></span></p>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Selecione suas pizzas</label>
+                            <div class="pizza-selection">
+                                <div class="pizza-item">
+                                    <input type="checkbox" id="margherita" value="margherita">
+                                    <label for="margherita">
+                                        <div class="pizza-info">
+                                            <span class="pizza-name">Margherita</span>
+                                            <span class="pizza-price">R$ 25,00</span>
+                                        </div>
+                                        <div class="pizza-description">Molho de tomate, mussarela e manjericão</div>
+                                    </label>
+                                </div>
+                                <div class="pizza-item">
+                                    <input type="checkbox" id="pepperoni" value="pepperoni">
+                                    <label for="pepperoni">
+                                        <div class="pizza-info">
+                                            <span class="pizza-name">Pepperoni</span>
+                                            <span class="pizza-price">R$ 30,00</span>
+                                        </div>
+                                        <div class="pizza-description">Molho de tomate, mussarela e pepperoni</div>
+                                    </label>
+                                </div>
+                                <div class="pizza-item">
+                                    <input type="checkbox" id="calabresa" value="calabresa">
+                                    <label for="calabresa">
+                                        <div class="pizza-info">
+                                            <span class="pizza-name">Calabresa</span>
+                                            <span class="pizza-price">R$ 28,00</span>
+                                        </div>
+                                        <div class="pizza-description">Molho de tomate, mussarela, calabresa e cebola</div>
+                                    </label>
+                                </div>
+                                <div class="pizza-item">
+                                    <input type="checkbox" id="quatro-queijos" value="quatro-queijos">
+                                    <label for="quatro-queijos">
+                                        <div class="pizza-info">
+                                            <span class="pizza-name">Quatro Queijos</span>
+                                            <span class="pizza-price">R$ 32,00</span>
+                                        </div>
+                                        <div class="pizza-description">Mussarela, provolone, parmesão e gorgonzola</div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="order-summary" id="order-summary" style="display: none;">
+                            <h3>Resumo do Pedido</h3>
+                            <div id="selected-items"></div>
+                            <div class="total-price">
+                                <strong>Total: R$ <span id="total-amount">0,00</span></strong>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="button" class="btn-secondary" onclick="showSection('meus-pedidos')">Cancelar</button>
+                            <button type="submit" class="btn-primary">
+                                <span class="material-icons">shopping_cart</span>
+                                Fazer Pedido
+                            </button>
+                        </div>
+                    </form>
+                </section>
+
+                <!-- Seção Meu Histórico -->
+                <section id="meu-historico" class="section">
+                    <div class="section-header">
+                        <h2>Meu Histórico de Pedidos</h2>
+                    </div>
+                    <div class="orders-grid" id="my-history-container">
+                        <!-- Histórico do cliente será carregado aqui -->
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+   <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+
+
+
+</body>
+</html>

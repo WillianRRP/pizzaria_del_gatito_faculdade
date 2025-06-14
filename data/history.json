@@ -1,0 +1,78 @@
+[
+  {
+    "id": 2,
+    "userId": 4,
+    "customerName": "willian rodrigues",
+    "customerPhone": "5193065239",
+    "customerAddress": "Rua vitor silva\npiratini",
+    "items": [
+      "Margherita",
+      "Pepperoni",
+      "Calabresa"
+    ],
+    "total": 83.0,
+    "status": "entregue",
+    "createdAt": "2025-06-12T06:33:05.029009",
+    "updatedAt": "2025-06-12T06:33:36.605541"
+  },
+  {
+    "id": 3,
+    "userId": 4,
+    "customerName": "willian rodrigues",
+    "customerPhone": "5193065239",
+    "customerAddress": "Rua vitor silva\npiratini",
+    "items": [
+      "Margherita",
+      "Quatro Queijos"
+    ],
+    "total": 57.0,
+    "status": "entregue",
+    "createdAt": "2025-06-12T06:34:57.093161",
+    "updatedAt": "2025-06-12T06:35:17.947660"
+  },
+  {
+    "id": 1,
+    "userId": 3,
+    "customerName": "willian rodrigues",
+    "customerPhone": "5193065239",
+    "customerAddress": "Rua vitor silva\npiratini",
+    "items": [
+      "Margherita"
+    ],
+    "total": 25.0,
+    "status": "entregue",
+    "createdAt": "2025-06-12T06:25:26.558736",
+    "updatedAt": "2025-06-12T07:01:21.876044"
+  },
+  {
+    "id": 4,
+    "userId": 4,
+    "customerName": "willian rodrigues",
+    "customerPhone": "5193065239",
+    "customerAddress": "Rua vitor silva\npiratini",
+    "items": [
+      "Margherita"
+    ],
+    "total": 25.0,
+    "status": "entregue",
+    "createdAt": "2025-06-12T07:12:51.689469",
+    "updatedAt": "2025-06-12T22:37:02.239746"
+  },
+  {
+    "id": 6,
+    "userId": 4,
+    "customerName": "willian rodrigues",
+    "customerPhone": "5193065239",
+    "customerAddress": "Rua vitor silva\npiratini",
+    "items": [
+      "Margherita",
+      "Pepperoni",
+      "Calabresa",
+      "Quatro Queijos"
+    ],
+    "total": 115.0,
+    "status": "entregue",
+    "createdAt": "2025-06-12T22:37:26.220552",
+    "updatedAt": "2025-06-12T22:37:31.916873"
+  }
+]
