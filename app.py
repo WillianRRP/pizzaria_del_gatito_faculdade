@@ -11,8 +11,9 @@ from sqlalchemy import text, func # Importar 'text' para primaryjoin e 'func' pa
 from flask_migrate import Migrate # IMPORTANTE: Adicionado para gerenciar migrações de banco de dados
 
 # Carrega variáveis de ambiente do arquivo .env
-# IMPORTANTE: No Vercel, as variáveis de ambiente devem ser configuradas diretamente no dashboard.
-# load_dotenv() só funciona para ambiente local.
+# IMPORTANTE: No Vercel, as variáveis de ambiente (como DATABASE_URL e SECRET_KEY)
+# devem ser configuradas diretamente no dashboard do Vercel.
+# load_dotenv() só funciona para o ambiente de desenvolvimento local.
 load_dotenv()
 
 # --- Configuração do Aplicativo Flask ---
@@ -25,12 +26,14 @@ CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 # Configuração do banco de dados PostgreSQL usando Flask-SQLAlchemy
 # Pega a URL do banco de dados da variável de ambiente 'DATABASE_URL'
+# Certifique-se de que 'DATABASE_URL' está configurada no dashboard do Vercel.
 # Ex: DATABASE_URL="postgresql://user:password@host:port/database_name"
 database_url = os.getenv('DATABASE_URL')
 if not database_url:
-    # Em produção (Vercel), esta variável DEVE estar configurada.
-    # Localmente, ela virá do .env.
-    raise ValueError("Variável de ambiente 'DATABASE_URL' não configurada. Por favor, defina-a.")
+    # Se esta mensagem de erro ainda aparecer no Vercel, significa que
+    # a variável DATABASE_URL não está sendo lida corretamente lá.
+    # Verifique o painel do Vercel -> Seu Projeto -> Settings -> Environment Variables.
+    raise ValueError("Variável de ambiente 'DATABASE_URL' não configurada. Por favor, defina-a no Vercel.")
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 
 # Desativa o rastreamento de modificações para economizar memória (recomendado)
@@ -44,12 +47,11 @@ migrate = Migrate(app, db)
 
 # Configuração da chave secreta para JWT
 # Pega a chave da variável de ambiente 'SECRET_KEY'
-# IMPORTANTE: A chave secreta DEVE ser configurada como uma variável de ambiente no Vercel
-# com o nome 'pizza_del_gatito_secret_key' (como definido no seu vercel.json).
-# O fallback é apenas para garantir que o app funcione localmente sem ela, mas NÃO é seguro para produção.
+# Certifique-se de que 'SECRET_KEY' (ou 'pizza_del_gatito_secret_key' se estiver mapeado no vercel.json)
+# está configurada como uma variável de ambiente no dashboard do Vercel.
 secret_key = os.getenv('SECRET_KEY', 'chave_secreta_fallback_muito_segura_para_jwt')
 if secret_key == 'chave_secreta_fallback_muito_segura_para_jwt':
-    print("AVISO: Usando chave secreta de fallback! Configure 'SECRET_KEY' como variável de ambiente para produção.")
+    print("AVISO: Usando chave secreta de fallback! Configure 'SECRET_KEY' (ou o nome mapeado no vercel.json) como variável de ambiente no Vercel para produção.")
 app.config['SECRET_KEY'] = secret_key
 
 # --- Definição dos Modelos do Banco de Dados ---
@@ -185,7 +187,6 @@ def login_required(f):
         # Armazena as informações do usuário no objeto 'g' para acesso posterior na requisição
         request.user_id = payload['user_id']
         request.user_role = payload['role']
-        # print(f"Usuário autenticado: ID={request.user_id}, Role={request.user_role}") # Para debug
     return f
 
 def admin_required(f):
@@ -457,8 +458,9 @@ if __name__ == '__main__':
     # IMPORTANTE PARA VERCEL:
     # A chamada 'initialize_database()' deve ser feita MANUALMENTE via 'flask db upgrade'
     # apontando para o seu banco de dados Supabase antes do deploy.
-    # Evitar chamar diretamente aqui evita problemas de cold start e acesso ao DB.
-    # initialize_database() # <-- Esta linha foi COMENTADA para o deploy no Vercel.
+    # Evitar chamar diretamente aqui evita problemas de cold start e acesso ao DB,
+    # pois o ambiente pode não estar totalmente pronto para conexões de DB neste ponto.
+    # initialize_database() # <-- ESTA LINHA FOI COMENTADA PARA O DEPLOY NO VERCEL.
 
     base_dir = os.path.dirname(os.path.abspath(__file__))
 
