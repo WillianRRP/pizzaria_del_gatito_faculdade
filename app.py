@@ -806,7 +806,7 @@ def internal_error(error):
 # initialize_database() # <-- Descomente ISSO COM CAUTELA se você quiser que o master user seja verificado/criado a cada cold start no Vercel.
                          # Mas o ideal é fazer a criação e migração do DB uma única vez manualmente.
 
-if __name__ == '__main__':
+
     # Este bloco é executado APENAS quando você roda o app.py localmente.
     # A inicialização do usuário master está aqui para o ambiente de desenvolvimento.
     initialize_database()
