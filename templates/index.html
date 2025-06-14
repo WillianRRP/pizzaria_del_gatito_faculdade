@@ -4,12 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pizzaria Del Gatito - Alvorada Piratini</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="/static/css/styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <body>
-    <!-- Tela de Login/Cadastro -->
     <div id="auth-screen" class="auth-screen">
         <div class="auth-container">
             <div class="auth-header">
@@ -26,7 +25,6 @@
             </div>
 
             <div class="auth-forms">
-                <!-- Formulário de Login -->
                 <div id="login-form" class="auth-form active">
                     <h2>Entrar na sua conta</h2>
                     <form id="login-form-element">
@@ -49,7 +47,6 @@
                     </p>
                 </div>
 
-                <!-- Formulário de Cadastro -->
                 <div id="register-form" class="auth-form">
                     <h2>Criar nova conta</h2>
                     <form id="register-form-element">
@@ -91,7 +88,6 @@
         </div>
     </div>
 
-    <!-- Aplicação Principal -->
     <div id="main-app" class="main-app" style="display: none;">
         <header class="header">
             <div class="container">
@@ -131,7 +127,6 @@
 
         <main class="main">
             <div class="container">
-                <!-- Seção Meus Pedidos -->
                 <section id="meus-pedidos" class="section active">
                     <div class="section-header">
                         <h2>Meus Pedidos Atuais</h2>
@@ -141,11 +136,9 @@
                         </button>
                     </div>
                     <div class="orders-grid" id="my-orders-container">
-                        <!-- Pedidos do cliente serão carregados aqui -->
-                    </div>
+                        </div>
                 </section>
 
-                <!-- Seção Fazer Pedido -->
                 <section id="fazer-pedido" class="section">
                     <div class="section-header">
                         <h2>Fazer Novo Pedido</h2>
@@ -224,23 +217,18 @@
                     </form>
                 </section>
 
-                <!-- Seção Meu Histórico -->
                 <section id="meu-historico" class="section">
                     <div class="section-header">
                         <h2>Meu Histórico de Pedidos</h2>
                     </div>
                     <div class="orders-grid" id="my-history-container">
-                        <!-- Histórico do cliente será carregado aqui -->
-                    </div>
+                        </div>
                 </section>
             </div>
         </main>
     </div>
 
-   <script src="{{ url_for('static', filename='js/script.js') }}"></script>
-
-
-
+    <script src="/static/js/script.js"></script>
 
 </body>
 </html>
