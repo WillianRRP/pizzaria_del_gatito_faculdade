@@ -11,8 +11,8 @@ from sqlalchemy import text, func # Importar 'text' para primaryjoin e 'func' pa
 from flask_migrate import Migrate # IMPORTANTE: Adicionado para gerenciar migrações de banco de dados
 
 # Carrega variáveis de ambiente do arquivo .env
-# IMPORTANTE: No Vercel, as variáveis de ambiente (como DATABASE_URL e SECRET_KEY)
-# devem ser configuradas diretamente no dashboard do Vercel.
+# IMPORTANTE: No Vercel/Render, as variáveis de ambiente (como DATABASE_URL e SECRET_KEY)
+# devem ser configuradas diretamente no dashboard da plataforma.
 # load_dotenv() só funciona para o ambiente de desenvolvimento local.
 load_dotenv()
 
@@ -26,14 +26,14 @@ CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 # Configuração do banco de dados PostgreSQL usando Flask-SQLAlchemy
 # Pega a URL do banco de dados da variável de ambiente 'DATABASE_URL'
-# Certifique-se de que 'DATABASE_URL' está configurada no dashboard do Vercel.
+# Certifique-se de que 'DATABASE_URL' está configurada no dashboard do Vercel/Render.
 # Ex: DATABASE_URL="postgresql://user:password@host:port/database_name"
 database_url = os.getenv('DATABASE_URL')
 if not database_url:
-    # Se esta mensagem de erro ainda aparecer no Vercel, significa que
+    # Se esta mensagem de erro ainda aparecer no Vercel/Render, significa que
     # a variável DATABASE_URL não está sendo lida corretamente lá.
-    # Verifique o painel do Vercel -> Seu Projeto -> Settings -> Environment Variables.
-    raise ValueError("Variável de ambiente 'DATABASE_URL' não configurada. Por favor, defina-a no Vercel.")
+    # Verifique o painel da plataforma -> Seu Projeto -> Settings -> Environment Variables.
+    raise ValueError("Variável de ambiente 'DATABASE_URL' não configurada. Por favor, defina-a na plataforma de deploy.")
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 
 # Desativa o rastreamento de modificações para economizar memória (recomendado)
@@ -47,11 +47,10 @@ migrate = Migrate(app, db)
 
 # Configuração da chave secreta para JWT
 # Pega a chave da variável de ambiente 'SECRET_KEY'
-# Certifique-se de que 'SECRET_KEY' (ou 'pizza_del_gatito_secret_key' se estiver mapeado no vercel.json)
-# está configurada como uma variável de ambiente no dashboard do Vercel.
+# Certifique-se de que 'SECRET_KEY' está configurada como uma variável de ambiente na plataforma de deploy.
 secret_key = os.getenv('SECRET_KEY', 'chave_secreta_fallback_muito_segura_para_jwt')
 if secret_key == 'chave_secreta_fallback_muito_segura_para_jwt':
-    print("AVISO: Usando chave secreta de fallback! Configure 'SECRET_KEY' (ou o nome mapeado no vercel.json) como variável de ambiente no Vercel para produção.")
+    print("AVISO: Usando chave secreta de fallback! Configure 'SECRET_KEY' como variável de ambiente na plataforma para produção.")
 app.config['SECRET_KEY'] = secret_key
 
 # --- Definição dos Modelos do Banco de Dados ---
@@ -219,6 +218,9 @@ def get_current_user(request_obj) -> dict | None:
     user_id = verify_token(token)
 
     if user_id is not None:
+        # AQUI: Se for o master user, ele ainda pode não ter um ID no DB
+        # mas o acesso é permitido se o token for gerado para ele (ex: em dev local)
+        # Para produção, o master user DEVE ser criado via flask db upgrade/shell
         if MASTER_USER['id'] is not None and user_id == MASTER_USER['id']:
             master_user_data = MASTER_USER.copy()
             master_user_data['createdAt'] = master_user_data['createdAt'].isoformat()
@@ -249,7 +251,7 @@ PIZZA_NAMES = {
 def initialize_database():
     """
     Garante que o usuário master padrão esteja presente no DB.
-    As tabelas são criadas/atualizadas via migrações do Flask-Migrate, não mais por db.create_all().
+    As tabelas são criadas/atualizadas via migrações do Flask-Migrate (flask db upgrade), não mais por db.create_all().
     """
     with app.app_context():
         try:
@@ -365,12 +367,15 @@ def api_login():
 
         # Verifica se é o usuário master primeiro
         if email == MASTER_USER['email']:
+            # No ambiente de deploy (Render), o usuário master deve existir no DB.
+            # Se não existir, pode ter havido um problema na migração inicial.
             if MASTER_USER['id'] is None:
                 master_user_in_db = User.query.filter_by(email=MASTER_USER['email']).first()
                 if master_user_in_db:
                     MASTER_USER['id'] = master_user_in_db.id
                 else:
-                    print("[AVISO] O usuário master não existe e o banco de dados pode estar vazio. Por favor, execute 'flask db upgrade' e depois 'initialize_database()' localmente uma vez.")
+                    # Este caso deve ser raro se 'flask db upgrade' foi rodado no Render Shell
+                    print("[AVISO] O usuário master não existe no DB. Por favor, execute 'flask db upgrade' no shell do Render uma única vez.")
                     return jsonify({'success': False, 'error': 'Erro na inicialização do usuário master. Tente novamente após aplicar as migrações.'}), 500
             
             if hash_password(password) == MASTER_USER['password_hash']:
@@ -720,7 +725,7 @@ def test_simple():
 def not_found(error):
     """Manipulador de erro para rotas não encontradas (404 Not Found)."""
     print(f"[ERROR] Rota não encontrada: {request.path}")
-    return jsonify({'success': False, 'error': 'Rota não encontrada. Verifique o URL.'}), 404
+    return jsonify({'success': False, 'error': 'Rota não encontrada. Verifique o URL. :('}), 404
 
 @app.errorhandler(500)
 def internal_error(error):
@@ -729,15 +734,16 @@ def internal_error(error):
     print(f"[ERROR] Erro interno do servidor: {error}")
     return jsonify({'success': False, 'error': 'Erro interno do servidor. Tente novamente mais tarde.'}), 500
 
-# --- Bloco de Inicialização e Execução do Aplicativo ---
+# --- Bloco de Inicialização e Execução do Aplicativo (Apenas para desenvolvimento local) ---
 # ESTE É O ÚNICO BLOCO if __name__ == '__main__': QUE DEVE EXISTIR NO ARQUIVO.
 if __name__ == '__main__':
     # A função initialize_database() deve ser chamada apenas para configuração inicial do DB e usuário master.
-    # Para o deploy no Vercel (ambiente serverless), o ideal é que as migrações (flask db upgrade)
-    # e a criação do usuário master sejam feitas manualmente (ou via script de build) UMA ÚNICA VEZ.
-    # Chamar initialize_database() aqui pode causar problemas em ambientes serverless durante o cold start.
-    # Descomente a linha abaixo APENAS para executar localmente e ter certeza que o usuário master foi criado.
-    initialize_database() # <-- MANTENHA ESTA LINHA COMENTADA PARA O DEPLOY NO VERCEL.
+    # Para o deploy em ambientes de produção (Vercel, Render), o ideal é que as migrações (flask db upgrade)
+    # e a criação do usuário master sejam feitas manualmente (ou via script de build/shell) UMA ÚNICA VEZ.
+    # Chamar initialize_database() aqui pode causar problemas em ambientes de produção durante o cold start.
+    with app.app_context(): # Garante que o contexto da aplicação esteja ativo para operações de DB
+        initialize_database() # <-- MANTENHA ESTA LINHA COMENTADA PARA O DEPLOY EM PRODUÇÃO (Render/Vercel).
+                               # Descomente-a APENAS para executar localmente e garantir a criação inicial do master user.
 
     base_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -755,6 +761,6 @@ if __name__ == '__main__':
         else:
             print(f"    ❌ {file_path} - NÃO ENCONTRADO (Verifique se estão em 'templates' ou em 'static/css' / 'static/js')")
     
-    print("\n🐱 Servidor Flask rodando! Acesse http://127.0.0.1:5000")
-    # A linha abaixo é APENAS para execução local e deve ser ignorada pelo Vercel.
+    print("\n🐱 Servidor Flask rodando localmente! Acesse http://127.0.0.1:5000")
+    # A linha abaixo é APENAS para execução local e deve ser ignorada pela Gunicorn/servidores de produção.
     app.run(debug=True, host='0.0.0.0', port=5000)
