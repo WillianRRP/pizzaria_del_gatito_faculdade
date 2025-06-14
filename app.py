@@ -791,7 +791,7 @@ def internal_error(error):
     return jsonify({'success': False, 'error': 'Erro interno do servidor. Tente novamente mais tarde.'}), 500
 
 # --- Bloco de Inicialização e Execução do Aplicativo ---
-i# ... (todo o seu código anterior) ...
+# ... (todo o seu código anterior) ...
 
 # --- Bloco de Inicialização e Execução do Aplicativo ---
 # A função initialize_database() deve ser chamada apenas uma vez para configurar o DB e o usuário master.
