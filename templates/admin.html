@@ -328,7 +328,7 @@
                         <p><strong>Endereço:</strong> ${order.customerAddress}</p>
                         <p><strong>Data:</strong> ${formatDate(new Date(order.createdAt))}</p>
                     </div>
-                    <<div class="order-items">
+                    <div class="order-items">
     <h4>Itens do Pedido:</h4>
     <ul>
         ${order.items.map(item => `<li>• ${item.name || item} (R$ ${new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.price || 0)})</li>`).join('')}
