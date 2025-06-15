@@ -1,587 +1,1126 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Pizzaria Del Gatito</title>
-    <link rel="stylesheet" href="/static/css/styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <style>
-        /* Estilos CSS internos da página admin.html */
-        .admin-header {
-            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-        }
-        .admin-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-        .stat-card {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-        .stat-number {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #dc3545;
-        }
-        .stat-label {
-            font-size: 0.9rem;
-            color: #555;
-            margin-top: 0.5rem;
-        }
-        .admin-orders-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 1rem;
-        }
-        .admin-orders-table th, .admin-orders-table td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-            vertical-align: top; /* Garante que o conteúdo longo comece do topo */
-        }
-        .admin-orders-table th {
-            background-color: #f2f2f2;
-            font-weight: 600;
-        }
-        .admin-orders-table tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        .admin-orders-table tr:hover {
-            background-color: #f1f1f1;
-        }
-        .order-actions select {
-            padding: 5px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            cursor: pointer;
-        }
-        .order-actions button {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            padding: 6px 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-left: 5px;
-        }
-        .order-actions button:hover {
-            opacity: 0.9;
-        }
-        .order-items-list {
-            list-style: none; /* Remove bolinhas da lista */
-            padding: 0;
-            margin: 0;
-        }
-        .order-items-list li {
-            margin-bottom: 3px;
-        }
-        /* Estilos de Notificação */
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background-color: #333;
-            color: white;
-            padding: 15px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-            opacity: 0;
-            transform: translateY(-50px);
-            transition: all 0.3s ease-in-out;
-        }
+/* Importação da fonte Poppins e Material Icons */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
 
-        .notification-info { background-color: #17a2b8; } /* Azul */
-        .notification-success { background-color: #28a745; } /* Verde */
-        .notification-error { background-color: #dc3545; } /* Vermelho */
+/* Variáveis CSS para cores e sombras (melhora a manutenção) */
+:root {
+    --primary-color: #dc3545; /* Vermelho vibrante */
+    --primary-color-dark: #c82333; /* Tom mais escuro do vermelho primário */
+    --secondary-color: #6c757d; /* Cinzento para botões secundários */
+    --accent-color: #ffc107; /* Amarelo para realce */
+    --text-color: #343a40; /* Texto principal escuro */
+    --light-text-color: #f8f9fa; /* Texto claro para fundos escuros */
+    --bg-light: #f4f6f9; /* Fundo geral claro */
+    --bg-dark: #212529; /* Fundo para cabeçalhos/rodapés escuros */
+    --border-color: #e9ecef; /* Cor de borda suave */
+    --card-shadow: 0 6px 20px rgba(0,0,0,0.08); /* Sombra mais pronunciada e suave */
+    --button-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    --border-radius-large: 15px;
+    --border-radius-medium: 10px;
+    --border-radius-small: 5px;
 
-        /* Animações */
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(-50px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes slideOut {
-            from { opacity: 1; transform: translateY(0); }
-            to { opacity: 0; transform: translateY(-50px); }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <header class="admin-header">
-            <div class="logo">
-                <div class="logo-icon">
-                    <span class="cat-emoji">🐱</span>
-                    <span class="pizza-emoji">🍕</span>
-                </div>
-                <div class="logo-text">
-                    <h1>Admin - Del Gatito</h1>
-                    <p>Painel de Controle</p>
-                </div>
-            </div>
-            <nav class="main-nav">
-                <button id="logout-button" class="btn-secondary">Sair</button>
-            </nav>
-        </header>
+    /* Novas variáveis para cores de status */
+    --status-pending: #ffc107; /* Amarelo */
+    --status-preparing: #17a2b8; /* Azul */
+    --status-out-for-delivery: #fd7e14; /* Laranja */
+    --status-delivered: #28a745; /* Verde */
+}
 
-        <main class="main-content">
-            <aside class="sidebar">
-                <a href="#" class="sidebar-link active" data-section="admin-dashboard">
-                    <span class="material-icons">dashboard</span>
-                    <span>Dashboard</span>
-                </a>
-                <a href="#" class="sidebar-link" data-section="admin-orders">
-                    <span class="material-icons">receipt_long</span>
-                    <span>Pedidos Ativos</span>
-                </a>
-                <a href="#" class="sidebar-link" data-section="admin-history">
-                    <span class="material-icons">history</span>
-                    <span>Histórico</span>
-                </a>
-            </aside>
+/* Reset básico e tipografia global */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
-            <div class="content-area">
-                <section id="admin-dashboard" class="section active">
-                    <div class="section-header">
-                        <h2>Dashboard</h2>
-                    </div>
-                    <div class="admin-stats" id="admin-stats-container">
-                        <!-- Estatísticas serão carregadas aqui -->
-                    </div>
-                </section>
+body {
+    font-family: 'Poppins', sans-serif;
+    line-height: 1.6;
+    color: var(--text-color);
+    background-color: var(--bg-light);
+    display: flex; /* Para centralizar o auth-screen */
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh; /* Ocupa toda a altura da viewport */
+    font-size: 16px; /* Tamanho base da fonte */
+}
 
-                <section id="admin-orders" class="section" style="display: none;">
-                    <div class="section-header">
-                        <h2>Pedidos Ativos</h2>
-                    </div>
-                    <div class="orders-list" id="admin-orders-container">
-                        <table class="admin-orders-table">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Cliente</th>
-                                    <th>Endereço</th>
-                                    <th>Telefone</th>
-                                    <th>Itens do Pedido</th>
-                                    <th>Total</th>
-                                    <th>Status</th>
-                                    <th>Data Pedido</th>
-                                    <th>Última Atualização</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody id="admin-orders-tbody">
-                                <!-- Pedidos serão injetados aqui -->
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
+/* Layout do Container Principal */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.5rem;
+    width: 100%;
+}
 
-                <section id="admin-history" class="section" style="display: none;">
-                    <div class="section-header">
-                        <h2>Histórico de Pedidos</h2>
-                    </div>
-                    <div class="orders-list" id="admin-history-container">
-                        <table class="admin-orders-table">
-                            <thead>
-                                <tr>
-                                    <th>ID Original</th>
-                                    <th>Cliente</th>
-                                    <th>Itens do Pedido</th>
-                                    <th>Total</th>
-                                    <th>Concluído Em</th>
-                                </tr>
-                            </thead>
-                            <tbody id="admin-history-tbody">
-                                <!-- Histórico será injetado aqui -->
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-            </div>
-        </main>
-    </div>
+/* --- Telas de Autenticação (Login/Registo) --- */
+.auth-screen {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh; /* Garante que o ecrã de autenticação ocupe toda a altura */
+    width: 100%;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
 
-    <script>
-        // Variáveis globais para armazenar dados do admin
-        let adminUser = null;
-        let adminOrders = [];
-        let adminHistory = [];
-        let adminStats = {};
+.auth-container {
+    background-color: white;
+    padding: 3rem 2.5rem;
+    border-radius: var(--border-radius-large);
+    box-shadow: var(--card-shadow);
+    width: 100%;
+    max-width: 450px;
+    text-align: center;
+    animation: fadeIn 0.8s ease-out;
+}
 
-        // Debug mode (ajuste conforme necessário)
-        const DEBUG_ADMIN = true;
-        function debugLogAdmin(message, data = null) {
-            if (DEBUG_ADMIN) {
-                console.log(`[ADMIN DEBUG] ${message}`, data || "");
-            }
-        }
+.auth-header {
+    margin-bottom: 2rem;
+}
 
-        // Funções de Utilitário
-        function getStatusText(status) {
-            const statusMap = {
-                'pendente': 'Pendente',
-                'preparando': 'Preparando',
-                'saiu-entrega': 'Saiu p/ Entrega',
-                'entregue': 'Entregue'
-            };
-            return statusMap[status] || status;
-        }
+.logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
 
-        function formatDate(dateString) {
-            if (!dateString) return '';
-            const date = new Date(dateString);
-            return date.toLocaleString('pt-BR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        }
+.logo-icon {
+    font-size: 3rem;
+    margin-right: 0.5rem;
+    position: relative;
+}
 
-        // Formata a lista de itens de um pedido
-        function formatOrderItems(items) {
-            if (!items || !Array.isArray(items) || items.length === 0) {
-                return 'Nenhum item.';
-            }
-            // Retorna uma lista HTML para melhor visualização na tabela
-            return `<ul class="order-items-list">${items.map(item => `<li>${item.name} (R$ ${parseFloat(item.price).toFixed(2).replace('.', ',')})</li>`).join('')}</ul>`;
-        }
+.cat-emoji {
+    position: absolute;
+    left: -10px;
+    top: -10px;
+    font-size: 2rem;
+    transform: rotate(-15deg);
+}
 
-        // Função de Notificação (Melhorada para lidar com mensagens de objeto)
-        function showNotification(message, type = 'info') {
-            // Limpa notificações existentes para evitar acúmulo
-            const existingNotifications = document.querySelectorAll('.notification');
-            existingNotifications.forEach(n => n.remove());
+.pizza-emoji {
+    font-size: 3rem;
+    color: #ff6b35; /* Cor da pizza */
+}
 
-            const notification = document.createElement('div');
-            notification.className = `notification notification-${type}`;
-            // Converte a mensagem para string, caso seja um objeto ou outro tipo
-            notification.textContent = String(message);
-            notification.style.animation = 'slideIn 0.3s ease';
-            document.body.appendChild(notification);
+.logo-text h1 {
+    font-size: 2.2rem;
+    color: var(--primary-color);
+    margin: 0;
+    font-weight: 700;
+}
 
-            setTimeout(() => {
-                notification.style.animation = 'slideOut 0.3s ease';
-                setTimeout(() => {
-                    if (document.body.contains(notification)) {
-                        document.body.removeChild(notification);
-                    }
-                }, 300);
-            }, 5000); // Aumentado para 5 segundos
-        }
+.logo-text p {
+    font-size: 0.9rem;
+    color: var(--secondary-color);
+    margin: 0;
+}
 
-        async function makeAdminRequest(url, options = {}) {
-            debugLogAdmin(`Fazendo requisição admin para ${url}`, options);
-            const token = localStorage.getItem("authToken");
-            if (!token) {
-                showNotification("Sessão expirada. Faça login novamente.", "error");
-                window.location.replace('/'); // Alterado para window.location.replace
-                // Lança um erro para interromper a execução da função makeAdminRequest
-                throw new Error("Token de autenticação não encontrado.");
-            }
+.auth-forms {
+    position: relative;
+    height: auto; /* Ajusta a altura automaticamente */
+    overflow: hidden; /* Garante que os formulários se escondam corretamente */
+}
 
-            const defaultHeaders = {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`
-            };
+.auth-form {
+    background: white;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 1.5rem 0;
+    transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
+    transform: translateX(100%); /* Esconde à direita por padrão */
+    opacity: 0;
+    pointer-events: none; /* Desativa interações quando oculto */
+}
 
-            const headers = {
-                ...defaultHeaders,
-                ...options.headers,
-            };
+.auth-form.active {
+    transform: translateX(0); /* Mostra no centro */
+    opacity: 1;
+    position: relative; /* Ocupa espaço no layout */
+    pointer-events: auto; /* Ativa interações */
+}
 
-            try {
-                const response = await fetch(url, {
-                    ...options,
-                    headers,
-                });
+/* Específico para o formulário de login (visível por padrão) */
+#login-form {
+    transform: translateX(0); /* Posiciona login no centro por padrão */
+    opacity: 1;
+    position: relative;
+    pointer-events: auto;
+}
 
-                if (response.status === 401 || response.status === 403) {
-                    showNotification("Acesso negado ou sessão expirada.", "error");
-                    localStorage.removeItem("authToken");
-                    window.location.replace('/'); // Alterado para window.location.replace
-                    throw new Error("Acesso não autorizado.");
-                }
+#login-form.active {
+    transform: translateX(0);
+}
 
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => null);
-                    // Garante que a mensagem de erro é uma string para showNotification
-                    const errorMessage = errorData?.error || `HTTP ${response.status}: ${response.statusText}`;
-                    throw new Error(errorMessage); // Lança o erro como uma string
-                }
+#register-form {
+    transform: translateX(100%);
+}
 
-                const data = await response.json();
-                debugLogAdmin(`Resposta de ${url}`, data);
-                return { response, data };
-            } catch (error) {
-                debugLogAdmin(`Erro na requisição admin para ${url}`, error);
-                // showNotification já recebe uma string de error.message
-                showNotification(error.message || "Erro de conexão com o servidor admin.", "error");
-                throw error; // Re-lança o erro para ser pego pelos handlers de nível superior
-            }
-        }
+#register-form.active {
+    transform: translateX(0);
+}
 
-        // --- Funções de Carregamento de Dados ---
-        async function loadAdminData() {
-            debugLogAdmin("Carregando dados do painel admin...");
-            try {
-                const { data: statsData } = await makeAdminRequest("/api/admin/stats");
-                if (statsData.success) {
-                    adminStats = statsData.stats;
-                    renderAdminStats();
-                } else {
-                    showNotification(statsData.error || "Erro ao carregar estatísticas do admin.", "error");
-                }
+.auth-form h2 {
+    font-size: 1.7rem;
+    color: var(--text-color);
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+}
 
-                const { data: ordersData } = await makeAdminRequest("/api/admin/orders");
-                if (ordersData.success) {
-                    adminOrders = ordersData.orders;
-                    renderAdminOrders();
-                } else {
-                    showNotification(ordersData.error || "Erro ao carregar pedidos ativos do admin.", "error");
-                }
+.form-group {
+    margin-bottom: 1.2rem;
+    text-align: left;
+}
 
-                await renderAdminHistory(); // Garante que o histórico é carregado após os outros
-            } catch (error) {
-                debugLogAdmin("Erro ao carregar dados do admin:", error);
-                // showNotification já é chamada por makeAdminRequest no catch principal
-            }
-        }
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-color);
+}
 
-        // --- Funções de Renderização ---
-        function renderAdminStats() {
-            const container = document.getElementById("admin-stats-container");
-            if (!container) {
-                debugLogAdmin("Elemento #admin-stats-container não encontrado.");
-                return;
-            }
-            container.innerHTML = `
-                <div class="stat-card">
-                    <span class="material-icons" style="font-size: 3rem; color: #17a2b8;">group</span>
-                    <div class="stat-number">${adminStats.users || 0}</div>
-                    <div class="stat-label">Usuários Cadastrados</div>
-                </div>
-                <div class="stat-card">
-                    <span class="material-icons" style="font-size: 3rem; color: #ffc107;">receipt_long</span>
-                    <div class="stat-number">${adminStats.active_orders || 0}</div>
-                    <div class="stat-label">Pedidos Ativos</div>
-                </div>
-                <div class="stat-card">
-                    <span class="material-icons" style="font-size: 3rem; color: #28a745;">check_circle</span>
-                    <div class="stat-number">${adminStats.completed_orders || 0}</div>
-                    <div class="stat-label">Pedidos Concluídos</div>
-                </div>
-                <div class="stat-card">
-                    <span class="material-icons" style="font-size: 3rem; color: #6f42c1;">attach_money</span>
-                    <div class="stat-number">R$ ${parseFloat(adminStats.total_revenue || 0).toFixed(2).replace('.', ',')}</div>
-                    <div class="stat-label">Faturamento Total</div>
-                </div>
-                <div class="stat-card">
-                    <span class="material-icons" style="font-size: 3rem; color: #dc3545;">hourglass_empty</span>
-                    <div class="stat-number">R$ ${parseFloat(adminStats.pending_revenue || 0).toFixed(2).replace('.', ',')}</div>
-                    <div class="stat-label">Receita Pendente</div>
-                </div>
-            `;
-        }
+.form-group input[type="email"],
+.form-group input[type="password"],
+.form-group input[type="text"],
+.form-group input[type="tel"],
+.form-group textarea {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-small);
+    font-size: 1rem;
+    color: var(--text-color);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
 
-        function renderAdminOrders() {
-            const tbody = document.getElementById("admin-orders-tbody");
-            if (!tbody) {
-                debugLogAdmin("Elemento #admin-orders-tbody não encontrado.");
-                return;
-            }
-            tbody.innerHTML = ""; // Limpa conteúdo anterior
+.form-group input[type="email"]:focus,
+.form-group input[type="password"]:focus,
+.form-group input[type="text"]:focus,
+.form-group input[type="tel"]:focus,
+.form-group textarea:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.25);
+    outline: none;
+}
 
-            if (adminOrders.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="10">Nenhum pedido ativo no momento.</td></tr>';
-                return;
-            }
+/* Botões */
+.btn-primary, .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.8rem 1.5rem;
+    border: none;
+    border-radius: var(--border-radius-medium);
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-decoration: none; /* Para botões usados como links */
+    box-shadow: var(--button-shadow); /* Aplica a sombra global do botão */
+}
 
-            adminOrders.forEach(order => {
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td>${order.id}</td>
-                    <td>${order.customerName} (${order.userId || 'N/A'})</td>
-                    <td>${order.customerAddress || 'N/A'}</td>
-                    <td>${order.customerPhone || 'N/A'}</td>
-                    <td>${formatOrderItems(order.items)}</td>
-                    <td>R$ ${parseFloat(order.total).toFixed(2).replace('.', ',')}</td>
-                    <td>${getStatusText(order.status)}</td>
-                    <td>${formatDate(order.createdAt)}</td>
-                    <td>${formatDate(order.updatedAt)}</td>
-                    <td class="order-actions">
-                        <select id="status-select-${order.id}" onchange="this.nextElementSibling.style.display = 'inline-block'">
-                            <option value="pendente" ${order.status === 'pendente' ? 'selected' : ''}>Pendente</option>
-                            <option value="preparando" ${order.status === 'preparando' ? 'selected' : ''}>Preparando</option>
-                            <option value="saiu-entrega" ${order.status === 'saiu-entrega' ? 'selected' : ''}>Saiu p/ Entrega</option>
-                            <option value="entregue" ${order.status === 'entregue' ? 'selected' : ''}>Entregue</option>
-                        </select>
-                        <button style="display:none;" onclick="updateOrderStatus(${order.id})">Atualizar</button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-color-dark) 100%);
+    color: white;
+}
 
-        async function renderAdminHistory() {
-            const tbody = document.getElementById("admin-history-tbody");
-            if (!tbody) {
-                debugLogAdmin("Elemento #admin-history-tbody não encontrado.");
-                return;
-            }
-            tbody.innerHTML = ""; // Limpa conteúdo anterior
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--primary-color-dark) 0%, #a71d2a 100%);
+    transform: translateY(-2px);
+}
 
-            try {
-                const { data: historyData } = await makeAdminRequest("/api/admin/history");
-                if (historyData.success) {
-                    adminHistory = historyData.orders;
-                } else {
-                    showNotification(historyData.error || "Erro ao carregar histórico de pedidos do admin", "error");
-                    return;
-                }
-            } catch (error) {
-                // Erro já tratado por makeAdminRequest e sua notificação.
-                return;
-            }
-             
-            if (adminHistory.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5">Nenhum pedido no histórico.</td></tr>';
-                return;
-            }
+.btn-secondary {
+    background-color: var(--secondary-color);
+    color: white;
+}
 
-            adminHistory.forEach(order => {
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td>${order.originalOrderId}</td>
-                    <td>${order.customerName}</td>
-                    <td>${formatOrderItems(order.items)}</td>
-                    <td>R$ ${parseFloat(order.total).toFixed(2).replace('.', ',')}</td>
-                    <td>${formatDate(order.completedAt)}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
+.btn-secondary:hover {
+    background-color: #5a6268;
+    transform: translateY(-2px);
+}
 
-        async function updateOrderStatus(orderId) {
-            const selectElement = document.getElementById(`status-select-${orderId}`);
-            if (!selectElement) {
-                debugLogAdmin(`Elemento de seleção de status para pedido ${orderId} não encontrado.`);
-                showNotification('Erro interno: Elemento de status não encontrado.', 'error');
-                return;
-            }
-            const newStatus = selectElement.value;
-            debugLogAdmin(`Atualizando status do pedido ${orderId} para ${newStatus}...`);
+.btn-primary .material-icons, .btn-secondary .material-icons {
+    margin-right: 0.5rem;
+    font-size: 1.2rem;
+}
 
-            try {
-                const { data } = await makeAdminRequest(`/api/admin/orders/${orderId}`, {
-                    method: 'PUT',
-                    body: JSON.stringify({ status: newStatus })
-                });
+.full-width {
+    width: 100%;
+}
 
-                if (data.success) {
-                    showNotification('Status do pedido atualizado!', 'success');
-                    // Recarregar todos os dados para refletir as mudanças (incluindo mover para histórico)
-                    loadAdminData();
-                } else {
-                    // Garante que a mensagem é uma string
-                    showNotification(data.error || 'Erro ao atualizar pedido', 'error');
-                }
-            } catch (error) {
-                // showNotification já é chamada pelo makeAdminRequest no catch principal
-                debugLogAdmin('Erro de conexão no updateOrderStatus', error);
-            }
-        }
+.auth-switch {
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+    color: var(--text-color);
+}
 
-        // --- Funções de UI (Mostrar/Esconder Seções) ---
-        function showAdminSection(sectionId) {
-            document.querySelectorAll(".section").forEach((section) => {
-                section.style.display = "none";
-            });
-            const targetSection = document.getElementById(sectionId);
-            if (targetSection) {
-                targetSection.style.display = "block";
-            } else {
-                debugLogAdmin(`Seção com ID "${sectionId}" não encontrada.`);
-                return;
-            }
-            
+.auth-switch a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+}
 
-            document.querySelectorAll(".sidebar-link").forEach(link => {
-                link.classList.remove("active");
-            });
-            const activeLink = document.querySelector(`.sidebar-link[data-section="${sectionId}"]`);
-            if (activeLink) {
-                activeLink.classList.add("active");
-            } else {
-                debugLogAdmin(`Link da sidebar para a seção "${sectionId}" não encontrado.`);
-            }
+.auth-switch a:hover {
+    text-decoration: underline;
+}
+
+/* Animação para o auth-container */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Layout da Aplicação Principal --- */
+.main-app {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-height: 100vh;
+    background-color: var(--bg-light);
+}
+
+.header {
+    background: linear-gradient(90deg, #ff6b35 0%, #f7931e 100%); /* Gradiente de pizza */
+    color: white;
+    padding: 1rem 0;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 999;
+}
+
+.header .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap; /* Permite quebrar linha em telas menores */
+    width: 100%; /* Garante que o container use a largura total disponível */
+}
+
+.header .logo {
+    margin-bottom: 0; /* Ajuste para o header */
+}
+
+.header .logo-text h1 {
+    color: white;
+}
+
+.header .logo-text p {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.header-user {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-left: auto; /* Empurra para a direita */
+    margin-bottom: 0;
+    flex-wrap: wrap; /* Permite quebrar linha em telas menores */
+    justify-content: flex-end; /* Alinha à direita em telas menores */
+}
+
+.user-welcome {
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+.btn-logout {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius-small);
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.btn-logout:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+.nav {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-top: 1rem;
+    gap: 0.5rem; /* Espaço entre os botões de navegação */
+    flex-wrap: wrap; /* Permite quebrar linha em telas menores */
+}
+
+.nav-btn {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    padding: 0.7rem 1.2rem;
+    border-radius: var(--border-radius-small);
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    display: flex;
+    align-items: center;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.nav-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.nav-btn.active {
+    background-color: rgba(255, 255, 255, 0.3);
+    border-bottom: 3px solid white;
+    font-weight: 600;
+}
+
+.nav-btn .material-icons {
+    margin-right: 0.5rem;
+    font-size: 1.2rem;
+}
+
+/* Conteúdo Principal */
+.main {
+    flex-grow: 1; /* Ocupa o espaço restante */
+    padding: 2rem 0;
+}
+
+.section {
+    background-color: white;
+    padding: 2.5rem;
+    border-radius: var(--border-radius-large);
+    box-shadow: var(--card-shadow);
+    margin-bottom: 2rem;
+    display: none; /* Esconde todas as seções por padrão */
+    animation: fadeIn 0.6s ease-out; /* Adiciona animação ao aparecer */
+}
+
+.section.active {
+    display: block; /* Mostra a seção ativa */
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 1rem;
+}
+
+.section-header h2 {
+    font-size: 1.8rem;
+    color: var(--primary-color);
+    font-weight: 700;
+    margin: 0;
+}
+
+/* Cards de Pedido/Histórico */
+.orders-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.order-card {
+    background-color: var(--bg-light);
+    border-radius: var(--border-radius-medium);
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: transform 0.2s ease;
+}
+
+.order-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+
+.order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    border-bottom: 1px dashed var(--border-color);
+    padding-bottom: 0.8rem;
+}
+
+.order-id {
+    font-weight: 700;
+    color: var(--text-color);
+    font-size: 1.1rem;
+}
+
+.order-status {
+    padding: 0.3rem 0.8rem;
+    border-radius: var(--border-radius-small);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: white;
+}
+
+/* Cores de status usando variáveis */
+.status-pendente { background-color: var(--status-pending); }
+.status-preparando { background-color: var(--status-preparing); }
+.status-saiu-entrega { background-color: var(--status-out-for-delivery); }
+.status-entregue { background-color: var(--status-delivered); }
+
+.order-info p {
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+.order-info strong {
+    color: var(--text-color);
+}
+
+.order-items {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+.order-items h4 {
+    font-size: 1rem;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+
+.order-items ul {
+    list-style: none; /* Remove marcadores padrão */
+    padding-left: 0;
+}
+
+.order-items li {
+    font-size: 0.9rem;
+    color: #555;
+    margin-bottom: 0.3rem;
+    padding-left: 1rem;
+    position: relative;
+}
+
+.order-items li::before {
+    content: '•'; /* Marcador personalizado */
+    color: var(--accent-color);
+    position: absolute;
+    left: 0;
+}
+
+.order-total {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    text-align: right;
+    border-top: 1px dashed var(--border-color);
+    padding-top: 0.8rem;
+    margin-top: 1rem;
+}
+
+/* Empty State para Pedidos/Histórico */
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    grid-column: 1 / -1; /* Ocupa todas as colunas */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+}
+
+.empty-state .emoji {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+    font-size: 1.5rem;
+    color: var(--text-color);
+    margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+    color: var(--secondary-color);
+    font-size: 1rem;
+}
 
 
-            // Atualiza o conteúdo da seção ao mostrá-la
-            if (sectionId === 'admin-dashboard') {
-                renderAdminStats();
-            } else if (sectionId === 'admin-orders') {
-                renderAdminOrders();
-            } else if (sectionId === 'admin-history') {
-                renderAdminHistory();
-            }
-        }
+/* --- Formulário de Novo Pedido --- */
+.order-form .customer-info {
+    background-color: var(--bg-light);
+    padding: 1.5rem;
+    border-radius: var(--border-radius-medium);
+    margin-bottom: 2rem;
+}
 
-        // --- Inicialização ---
-        document.addEventListener("DOMContentLoaded", async () => {
-            // Verifica se o usuário é um admin ao carregar a página admin.html
-            const token = localStorage.getItem("authToken");
-            if (!token) {
-                window.location.replace('/'); // Alterado para window.location.replace
-                return;
-            }
+.order-form .customer-info h3 {
+    color: var(--primary-color);
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+}
 
-            try {
-                const { data } = await makeAdminRequest("/api/verify-token", {
-                    method: "POST"
-                });
+.order-form .customer-display p {
+    font-size: 0.95rem;
+    margin-bottom: 0.4rem;
+    color: #555;
+}
 
-                if (data.success && (data.user.role === 'admin' || data.user.role === 'master')) {
-                    adminUser = data.user;
-                    debugLogAdmin("Admin logado:", adminUser);
-                    loadAdminData();
-                    showAdminSection('admin-dashboard'); // Mostra o dashboard por padrão
-                } else {
-                    showNotification("Acesso negado. Apenas para administradores.", "error");
-                    window.location.replace('/'); // Alterado para window.location.replace
-                }
-            } catch (error) {
-                debugLogAdmin("Erro na verificação de token do admin.", error);
-                // showNotification já é chamada por makeAdminRequest no catch principal
-                window.location.replace('/'); // Alterado para window.location.replace
-            }
+.order-form .customer-display strong {
+    color: var(--text-color);
+}
 
-            const logoutButton = document.getElementById("logout-button");
-            if (logoutButton) {
-                logoutButton.addEventListener("click", () => {
-                    localStorage.removeItem("authToken");
-                    window.location.replace('/'); // Alterado para window.location.replace
-                });
-            }
+.pizza-selection {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
 
-            // Adiciona event listeners para os links da sidebar
-            document.querySelectorAll(".sidebar-link").forEach(link => {
-                link.addEventListener("click", (e) => {
-                    e.preventDefault();
-                    const sectionId = e.currentTarget.dataset.section;
-                    showAdminSection(sectionId);
-                });
-            });
-        });
-    </script>
-</body>
-</html>
+.pizza-item {
+    background-color: var(--bg-light);
+    border-radius: var(--border-radius-medium);
+    padding: 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pizza-item:hover {
+    background-color: #e2e6ea;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.pizza-item input[type="checkbox"] {
+    display: none; /* Esconde o checkbox original */
+}
+
+.pizza-item label {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1; /* Permite que o label ocupe o espaço restante */
+    cursor: pointer;
+    padding-left: 2.5rem; /* Espaço para o checkbox personalizado */
+    position: relative;
+}
+
+/* Estilo do checkbox personalizado */
+.pizza-item label::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--primary-color);
+    border-radius: 4px;
+    background-color: white;
+    transition: all 0.2s ease;
+}
+
+.pizza-item input[type="checkbox"]:checked + label::before {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.pizza-item input[type="checkbox"]:checked + label::after {
+    content: '✔'; /* Ícone de check */
+    position: absolute;
+    left: 2px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    color: white;
+}
+
+.pizza-info {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 0.3rem;
+}
+
+.pizza-name {
+    font-weight: 600;
+    color: var(--text-color);
+    font-size: 1.1rem;
+}
+
+.pizza-price {
+    font-weight: 700;
+    color: var(--primary-color);
+    font-size: 1.1rem;
+}
+
+.pizza-description {
+    font-size: 0.9rem;
+    color: #777;
+}
+
+.order-summary {
+    background-color: #eaf1f7; /* Um azul muito claro */
+    padding: 1.5rem;
+    border-radius: var(--border-radius-medium);
+    margin-top: 2rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.order-summary h3 {
+    color: #17a2b8; /* Azul da info */
+    font-size: 1.4rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #cce5ff;
+    padding-bottom: 0.5rem;
+}
+
+.order-summary .total-price {
+    display: flex;
+    justify-content: space-between;
+    font-size: 1.3rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px dashed #cce5ff;
+}
+
+.order-summary .total-price strong {
+    color: var(--text-color);
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+/* --- Notificações --- */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: #333;
+    color: white;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    opacity: 0;
+    transform: translateY(-50px);
+    transition: all 0.3s ease-in-out;
+    animation: slideIn 0.3s ease forwards; /* forwards para manter o estado final da animação */
+}
+
+.notification-info { background-color: #17a2b8; }
+.notification-success { background-color: #28a745; }
+.notification-error { background-color: #dc3545; }
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateY(-50px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideOut {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(-50px); }
+}
+
+/* --- ADMIN PANEL CSS --- */
+.admin-header {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-color-dark) 100%);
+    color: var(--light-text-color);
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.admin-header .logo-text h1 {
+    color: var(--light-text-color);
+}
+
+.admin-header .logo-text p {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.admin-header .btn-secondary {
+    background-color: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.admin-header .btn-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+.main-content {
+    display: flex;
+    flex-grow: 1;
+    min-height: calc(100vh - 70px); /* Altura total - altura do cabeçalho */
+}
+
+.sidebar {
+    width: 250px;
+    background-color: #343a40; /* Dark sidebar */
+    padding: 2rem 1.5rem;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    padding: 0.8rem 1rem;
+    border-radius: var(--border-radius-small);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.sidebar-link:hover {
+    background-color: #495057;
+    color: white;
+}
+
+.sidebar-link.active {
+    background-color: var(--primary-color);
+    color: white;
+    font-weight: 600;
+}
+
+.sidebar-link .material-icons {
+    margin-right: 1rem;
+    font-size: 1.5rem;
+}
+
+.content-area {
+    flex-grow: 1;
+    padding: 2rem;
+    background-color: var(--bg-light);
+}
+
+.admin-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem; /* Aumenta o espaçamento */
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    padding: 1.8rem; /* Aumenta o preenchimento */
+    border-radius: var(--border-radius-large); /* Bordas mais arredondadas */
+    box-shadow: var(--card-shadow);
+    text-align: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+
+.stat-number {
+    font-size: 2.8rem; /* Tamanho maior */
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-top: 0.8rem;
+    margin-bottom: 0.5rem;
+}
+
+.stat-label {
+    font-size: 1rem; /* Um pouco maior */
+    color: #666;
+    font-weight: 500;
+}
+
+/* Melhorias na Tabela de Pedidos */
+.admin-orders-table {
+    width: 100%;
+    border-collapse: separate; /* Permite border-radius */
+    border-spacing: 0;
+    margin-top: 1.5rem;
+    background-color: white;
+    border-radius: var(--border-radius-medium);
+    overflow: hidden; /* Garante que o border-radius seja aplicado */
+    box-shadow: var(--card-shadow);
+    font-size: 0.95rem; /* Ligeiramente maior para legibilidade */
+}
+
+.admin-orders-table th, .admin-orders-table td {
+    padding: 1rem 1.2rem; /* Mais preenchimento */
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle; /* Centraliza verticalmente o conteúdo */
+}
+
+.admin-orders-table th {
+    background-color: var(--primary-color); /* Fundo com cor primária */
+    color: white;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem; /* Ligeiramente menor para cabeçalho */
+    letter-spacing: 0.5px;
+    white-space: nowrap; /* Evita quebra de linha nos cabeçalhos */
+}
+
+.admin-orders-table tbody tr:last-child td {
+    border-bottom: none; /* Remove a borda inferior da última linha */
+}
+
+.admin-orders-table tbody tr:nth-child(even) {
+    background-color: #f8fafd; /* Cor de fundo mais suave para linhas pares */
+}
+
+.admin-orders-table tbody tr:hover {
+    background-color: #eef4f9; /* Destaque ao passar o mouse */
+}
+
+.order-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem; /* Espaçamento entre select e button */
+}
+
+.order-actions select {
+    padding: 0.6rem 0.8rem;
+    border-radius: var(--border-radius-small);
+    border: 1px solid var(--border-color);
+    background-color: white;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    appearance: none; /* Remove estilo padrão do sistema operacional */
+    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23333%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13%205.4L146.2%20209.3%2018.9%2074.7c-3.8-3.6-9.1-5.4-14.7-5.4-10.9%200-19.8%208.9-19.8%2019.8s8.9%2019.8%2019.8%2019.8c5.7%200%2010.9-1.8%2014.7-5.4l112%20107.9c3.8%203.6%209.1%205.4%2014.7%205.4s10.9-1.8%2014.7-5.4l112-107.9c3.8-3.6%209.1-5.4%2014.7-5.4%2010.9%200%2019.8%208.9%2019.8%2019.8S297.9%2074.8%20287%2069.4z%22%2F%3E%3C%2Fsvg%3E'); /* Ícone de seta */
+    background-repeat: no-repeat;
+    background-position: right 0.8em center;
+    background-size: 0.6em auto;
+    padding-right: 2em; /* Espaço extra para o ícone */
+}
+
+.order-actions select:focus {
+    border-color: var(--accent-color);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.25); /* Usar RGB para a variável --accent-color */
+}
+
+.order-actions button {
+    background-color: var(--status-delivered); /* Usa a cor de sucesso para o botão de atualização */
+    color: white;
+    padding: 0.6rem 1rem;
+    border-radius: var(--border-radius-small);
+    font-size: 0.9rem;
+    box-shadow: var(--button-shadow);
+    white-space: nowrap; /* Evita quebra de linha no botão */
+}
+
+.order-actions button:hover {
+    background-color: #218838;
+}
+
+.order-items-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 100px; /* Limita a altura para tabelas densas */
+    overflow-y: auto; /* Adiciona scroll se os itens forem muitos */
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-small);
+    padding: 0.5rem;
+    background-color: #fcfdff;
+}
+
+.order-items-list li {
+    font-size: 0.85rem;
+    color: #555;
+    margin-bottom: 0.2rem;
+    padding-left: 0.5rem; /* Ajusta o padding para a lista interna */
+}
+.order-items-list li:last-child {
+    margin-bottom: 0;
+}
+
+
+/* Responsividade Básica */
+@media (max-width: 992px) { /* Tablet e mobile */
+    .container {
+        padding: 1rem;
+    }
+
+    .auth-container {
+        padding: 2rem 1.5rem;
+    }
+
+    .logo-text h1 {
+        font-size: 1.8rem;
+    }
+
+    .header .container {
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .header-user {
+        width: 100%;
+        justify-content: center;
+        margin-top: 0;
+    }
+
+    .nav {
+        margin-top: 1rem;
+        flex-direction: row; /* Mantém em linha no tablet */
+        flex-wrap: wrap;
+        width: 100%;
+        gap: 0.5rem;
+    }
+
+    .nav-btn {
+        flex-grow: 1; /* Cresce para preencher o espaço */
+        text-align: center;
+        justify-content: center; /* Centraliza o conteúdo do botão */
+    }
+
+    .sidebar {
+        width: 100%;
+        height: auto;
+        flex-direction: row; /* Links da sidebar em linha */
+        justify-content: center;
+        padding: 1rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .sidebar-link {
+        padding: 0.6rem 1rem;
+        margin: 0;
+        font-size: 0.9rem;
+    }
+
+    .sidebar-link .material-icons {
+        margin-right: 0.5rem;
+        font-size: 1.2rem;
+    }
+
+    .content-area {
+        padding: 1rem;
+    }
+
+    .admin-stats {
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); /* Ajusta para 2 colunas no tablet */
+        gap: 1rem;
+    }
+
+    .admin-orders-table, .orders-list {
+        overflow-x: auto; /* Adiciona scroll horizontal se a tabela for muito larga */
+    }
+
+    .admin-orders-table table {
+        min-width: 800px; /* Garante que a tabela não fique muito estreita */
+    }
+}
+
+@media (max-width: 576px) { /* Apenas Mobile */
+    body {
+        font-size: 14px; /* Reduz a fonte base para mobile */
+    }
+    .container {
+        padding: 0.8rem;
+    }
+    .auth-container {
+        padding: 1.5rem 1rem;
+        max-width: 95%;
+    }
+    .logo-text h1 {
+        font-size: 1.5rem;
+    }
+    .logo-icon {
+        font-size: 2.5rem;
+    }
+    .cat-emoji {
+        font-size: 1.8rem;
+    }
+    .pizza-emoji {
+        font-size: 2.5rem;
+    }
+    .nav {
+        flex-direction: column; /* Volta para coluna em mobile para botões empilhados */
+        gap: 0.8rem;
+    }
+    .sidebar {
+        flex-direction: column; /* Sidebar vertical em mobile */
+        gap: 0.5rem;
+    }
+    .sidebar-link {
+        width: 100%;
+        text-align: center;
+        justify-content: center;
+    }
+    .admin-stats {
+        grid-template-columns: 1fr; /* Uma coluna no mobile */
+    }
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.8rem;
+    }
+    .section-header h2 {
+        font-size: 1.5rem;
+    }
+    .btn-primary, .btn-secondary {
+        padding: 0.7rem 1rem;
+        font-size: 0.9rem;
+    }
+    .form-actions {
+        flex-direction: column;
+        gap: 0.8rem;
+    }
+    .form-actions button {
+        width: 100%;
+    }
+    .orders-grid {
+        gap: 1rem;
+    }
+    .order-card {
+        padding: 1.2rem;
+    }
+    .admin-orders-table th, .admin-orders-table td {
+        padding: 0.8rem 1rem;
+    }
+}
+
+/* Efeito de "vidro" para notificação */
+.notification::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(5px);
+    border-radius: inherit;
+    z-index: -1;
+}
+
+/* Sombra e transições para elementos clicáveis */
+.btn-primary, .btn-secondary, .nav-btn, .order-card, .pizza-item, .stat-card {
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.btn-primary:hover, .btn-secondary:hover, .nav-btn:hover, .order-card:hover, .pizza-item:hover, .stat-card:hover {
+    box-shadow: 0 8px 20px rgba(0,0,0,0.25); /* Sombra mais intensa no hover */
+    transform: translateY(-5px); /* Efeito de levantar mais pronunciado */
+}
+
+.admin-orders-table tbody tr {
+    transition: background-color 0.3s ease;
+}
+
