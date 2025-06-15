@@ -88,14 +88,20 @@ async function makeRequest(url, options = {}) {
 
 // Preços das pizzas
 const pizzaPrices = {
+  // CORRIGIDO: Chaves agora correspondem EXATAMENTE aos valores que chegam dos checkboxes (e da API)
+  "Especial-Del-Gatito": 35.0, // Ajustado para "Especial-Del-Gatito"
+  "Hawaiana": 30.0,             // Ajustado para "Hawaiana"
   margherita: 25.0,
   pepperoni: 30.0,
-  calabresa: 28.0,
+  calabresa: 23.0,
   "quatro-queijos": 32.0,
 }
 
 // Nomes das pizzas
 const pizzaNames = {
+  // CORRIGIDO: Chaves agora correspondem EXATAMENTE aos valores que chegam dos checkboxes (e da API)
+  "Especial-Del-Gatito": "Especial Del Gatito", // Ajustado para "Especial-Del-Gatito"
+  "Hawaiana": "Hawaiana",                         // Ajustado para "Hawaiana"
   margherita: "Margherita",
   pepperoni: "Pepperoni",
   calabresa: "Calabresa",
@@ -108,7 +114,8 @@ document.addEventListener("DOMContentLoaded", () => {
   testConnection()
   checkAuthStatus()
   setupEventListeners()
-  loadPizzas() // Carrega as pizzas assim que o DOM estiver pronto
+  // Removida a chamada direta de loadPizzas aqui, pois ela é chamada em showMainApp
+  // para garantir que a autenticação e os dados do usuário estejam carregados primeiro.
 })
 
 // Verificar se usuário está logado
@@ -193,6 +200,7 @@ function showAuthScreen() {
 }
 
 function showMainApp() {
+  debugLog("showMainApp: Iniciando a interface principal do aplicativo.")
   document.getElementById("auth-screen").style.display = "none"
   document.getElementById("main-app").style.display = "block"
   // Atualiza nome do usuário no cabeçalho
@@ -201,6 +209,7 @@ function showMainApp() {
     userNameElement.textContent = currentUser.name;
   }
   updateCustomerDisplay()
+  loadPizzas(); // Carrega as pizzas aqui, após o login/autenticação
   loadUserData()
   showSection("meus-pedidos") // Mostra "Meus Pedidos" por padrão ao logar
 }
@@ -307,6 +316,7 @@ function logout() {
 
 // Navegação entre seções
 function showSection(sectionId) {
+  debugLog(`Mostrando seção: ${sectionId}`)
   // Esconder todas as seções
   document.querySelectorAll(".section").forEach((section) => {
     section.classList.remove("active")
@@ -344,6 +354,7 @@ function updateActiveNavButton(activeBtn) {
 
 // Carregar dados do usuário
 async function loadUserData() {
+  debugLog("loadUserData: Tentando carregar dados do usuário...")
   const token = localStorage.getItem("authToken")
   if (!token) {
     debugLog("loadUserData: Token não encontrado, pulando carregamento de dados.")
@@ -360,6 +371,7 @@ async function loadUserData() {
 
     if (ordersData.success) {
       userOrders = ordersData.orders
+      debugLog("Pedidos ativos carregados", userOrders)
       renderMyOrders()
     } else {
       // Garantir que a mensagem é uma string
@@ -375,6 +387,7 @@ async function loadUserData() {
 
     if (historyData.success) {
       userHistory = historyData.orders
+      debugLog("Histórico de pedidos carregado", userHistory)
       renderMyHistory()
     } else {
       // Garantir que a mensagem é uma string
@@ -389,6 +402,7 @@ async function loadUserData() {
 
 // Atualizar exibição dos dados do cliente
 function updateCustomerDisplay() {
+  debugLog("Atualizando exibição dos dados do cliente.", currentUser)
   const nameElement = document.getElementById("customer-display-name");
   const phoneElement = document.getElementById("customer-display-phone");
   const addressElement = document.getElementById("customer-display-address");
@@ -400,59 +414,80 @@ function updateCustomerDisplay() {
 
 // Renderização de pizzas (para a seção "Fazer Pedido")
 async function loadPizzas() {
-  debugLog("Carregando pizzas para a seleção...")
+  debugLog("loadPizzas: Carregando pizzas para a seleção...")
   try {
     const { data } = await makeRequest("/api/pizzas")
     if (data.success && data.pizzas && Array.isArray(data.pizzas)) {
       const pizzaSelectionDiv = document.querySelector(".pizza-selection")
       if (pizzaSelectionDiv) {
-        pizzaSelectionDiv.innerHTML = data.pizzas.map(pizza => `
-          <div class="pizza-item">
-              <input type="checkbox" id="${pizza.id}" value="${pizza.id}" data-price="${pizza.price}">
-              <label for="${pizza.id}">
-                  <div class="pizza-info">
-                      <span class="pizza-name">${pizza.name}</span>
-                      <span class="pizza-price">R$ ${parseFloat(pizza.price).toFixed(2).replace('.', ',')}</span>
-                  </div>
-                  <div class="pizza-description">${getPizzaDescription(pizza.id)}</div>
-              </label>
-          </div>
-        `).join('');
+        debugLog("loadPizzas: Pizzas recebidas da API:", data.pizzas);
+        // Remove o conteúdo estático e renderiza apenas as pizzas da API
+        pizzaSelectionDiv.innerHTML = data.pizzas.map(pizza => {
+            debugLog(`loadPizzas: Renderizando pizza da API - ID: ${pizza.id}, Nome: ${pizza.name}, Preço: ${pizza.price}`);
+            return `
+            <div class="pizza-item">
+                <input type="checkbox" id="${pizza.id}" value="${pizza.id}" data-price="${pizza.price}">
+                <label for="${pizza.id}">
+                    <div class="pizza-info">
+                        <span class="pizza-name">${pizza.name}</span>
+                        <span class="pizza-price">R$ ${parseFloat(pizza.price).toFixed(2).replace('.', ',')}</span>
+                    </div>
+                    <div class="pizza-description">${getPizzaDescription(pizza.id)}</div>
+                </label>
+            </div>
+            `;
+        }).join('');
 
         // Adiciona event listeners APÓS a renderização
         document.querySelectorAll('.pizza-item input[type="checkbox"]').forEach((checkbox) => {
           checkbox.addEventListener("change", updateOrderSummary);
+          debugLog(`loadPizzas: Adicionado listener para checkbox: ${checkbox.id}`);
         });
-        updateOrderSummary(); // Atualiza o resumo inicial
+        updateOrderSummary(); // Atualiza o resumo inicial (se houver pizzas pré-selecionadas ou nenhuma)
       }
     } else {
-      // Garantir que a mensagem é uma string
-      showNotification(data.error || "Erro ao carregar lista de pizzas.", "error")
+      // Fallback: Se a API falhar, usa as pizzas estáticas do HTML e tenta adicionar listeners a elas
+      debugLog("loadPizzas: Erro ao carregar pizzas da API. Usando pizzas estáticas do HTML.", data.error);
+      document.querySelectorAll('.pizza-item input[type="checkbox"]').forEach((checkbox) => {
+        checkbox.addEventListener("change", updateOrderSummary);
+        debugLog(`loadPizzas: (Fallback) Adicionado listener para checkbox: ${checkbox.id}`);
+      });
+      updateOrderSummary(); // Atualiza o resumo inicial com as pizzas estáticas
+      showNotification(data.error || "Erro ao carregar lista de pizzas da API. Exibindo pizzas padrão.", "warning");
     }
   } catch (error) {
-    debugLog("Erro ao carregar pizzas", error);
-    // Garantir que a mensagem é uma string
-    showNotification(error.message || "Erro de conexão ao carregar pizzas.", "error")
+    debugLog("loadPizzas: Erro catastrófico ao carregar pizzas. Usando pizzas estáticas do HTML.", error);
+    // Fallback: Se a requisição à API falhar completamente, usa as pizzas estáticas
+    document.querySelectorAll('.pizza-item input[type="checkbox"]').forEach((checkbox) => {
+      checkbox.addEventListener("change", updateOrderSummary);
+      debugLog(`loadPizzas: (Fallback Erro) Adicionado listener para checkbox: ${checkbox.id}`);
+    });
+    updateOrderSummary(); // Atualiza o resumo inicial com as pizzas estáticas
+    showNotification(error.message || "Erro de conexão ao carregar pizzas. Exibindo pizzas padrão.", "error")
   }
 }
 
-// Função auxiliar para obter descrição da pizza (se precisar)
+// Função auxiliar para obter descrição da pizza
 function getPizzaDescription(pizzaId) {
+    // ATENÇÃO: As chaves do switch DEVEM ser exatamente iguais aos 'value' dos inputs no HTML
+    // e aos IDs que vêm da API para as pizzas (se loadPizzas as sobrescrever)
     switch (pizzaId) {
         case 'margherita': return 'Molho de tomate, mussarela e manjericão';
         case 'pepperoni': return 'Molho de tomate, mussarela e pepperoni';
         case 'calabresa': return 'Molho de tomate, mussarela, calabresa e cebola';
         case 'quatro-queijos': return 'Mussarela, provolone, parmesão e gorgonzola';
+        case 'Especial-Del-Gatito': return 'Molho rústico, quatro queijos, mignon, cebola caramelizada, catupiry e rúcula'; // Corrigido para "Especial-Del-Gatito"
+        case 'Hawaiana': return 'Molho de tomate, mussarela, presunto e abacaxi'; // Corrigido para "Hawaiana"
         default: return 'Deliciosa pizza!';
     }
 }
 
 
-// Renderização de pedidos (AGORA COM OS ITENS FORMATADOS CORRETAMENTE)
+// Renderização de pedidos
 function renderMyOrders() {
   const container = document.getElementById("my-orders-container")
   if (!container) {
-    debugLog("Elemento #my-orders-container não encontrado.");
+    debugLog("renderMyOrders: Elemento #my-orders-container não encontrado.");
     return;
   }
 
@@ -464,16 +499,18 @@ function renderMyOrders() {
                 <p>Que tal fazer seu primeiro pedido?</p>
             </div>
         `
+    debugLog("renderMyOrders: Nenhuns pedidos ativos para renderizar.");
     return
   }
 
   container.innerHTML = userOrders.map((order) => createOrderCard(order)).join("")
+  debugLog("renderMyOrders: Pedidos ativos renderizados.", userOrders);
 }
 
 function renderMyHistory() {
   const container = document.getElementById("my-history-container")
   if (!container) {
-    debugLog("Elemento #my-history-container não encontrado.");
+    debugLog("renderMyHistory: Elemento #my-history-container não encontrado.");
     return;
   }
 
@@ -485,10 +522,12 @@ function renderMyHistory() {
                 <p>Seus pedidos entregues aparecerão aqui</p>
             </div>
         `
+    debugLog("renderMyHistory: Nenhuns pedidos no histórico para renderizar.");
     return
   }
 
   container.innerHTML = userHistory.map((order) => createOrderCard(order, true)).join("")
+  debugLog("renderMyHistory: Histórico de pedidos renderizado.", userHistory);
 }
 
 // FUNÇÃO ATUALIZADA PARA FORMATAR OS ITENS CORRETAMENTE
@@ -498,7 +537,14 @@ function createOrderCard(order, isHistory = false) {
 
   // Formatar itens do pedido para exibição
   const formattedItems = Array.isArray(order.items)
-    ? order.items.map((item) => `<li>• ${item.name || item} (R$ ${(item.price || 0).toFixed(2).replace('.', ',')})</li>`).join("")
+    ? order.items.map((item) => {
+        // Tenta encontrar a pizza pelos IDs para pegar o nome formatado e o preço
+        // ATENÇÃO: 'item' aqui deve ser a string ID/chave da pizza (ex: "hawaiana", "margherita")
+        const pizzaInfo = pizzaPrices[item] ? { name: pizzaNames[item], price: pizzaPrices[item] } :
+                          (typeof item === 'object' && item !== null) ? item : { name: item, price: 0 }; // Fallback para objeto ou string simples
+        
+        return `<li>• ${pizzaInfo.name} (R$ ${parseFloat(pizzaInfo.price).toFixed(2).replace('.', ',')})</li>`;
+      }).join("")
     : `<li>${order.items || "Nenhum item especificado"}</li>`; // Fallback caso 'items' não seja um array ou seja nulo
 
   return `
@@ -531,11 +577,13 @@ function createOrderCard(order, isHistory = false) {
 
 // Atualizar resumo do pedido
 function updateOrderSummary() {
+  debugLog("updateOrderSummary: Iniciando atualização do resumo do pedido.")
   const selectedPizzas = []
   let total = 0
 
   document.querySelectorAll('.pizza-item input[type="checkbox"]:checked').forEach((checkbox) => {
-    const pizzaKey = checkbox.value
+    const pizzaKey = checkbox.value // Pega o 'value' do input (ex: "hawaiana", "especial-del-gatito")
+    debugLog(`updateOrderSummary: Checkbox marcado - ID/Value: "${pizzaKey}"`);
     // Certificar-se de que pizzaNames[pizzaKey] e pizzaPrices[pizzaKey] existem
     if (pizzaNames[pizzaKey] && pizzaPrices[pizzaKey]) {
         selectedPizzas.push({
@@ -543,8 +591,10 @@ function updateOrderSummary() {
             price: pizzaPrices[pizzaKey],
         })
         total += pizzaPrices[pizzaKey]
+        debugLog(`updateOrderSummary: Pizza "${pizzaKey}" encontrada. Adicionando ao resumo.`);
     } else {
-        debugLog(`Erro: Pizza ${pizzaKey} não encontrada em pizzaNames ou pizzaPrices.`);
+        // Isso vai imprimir no console do navegador se uma pizza não for encontrada
+        debugLog(`updateOrderSummary: ERRO! Pizza "${pizzaKey}" NÃO encontrada em pizzaNames ou pizzaPrices. Verifique a consistência dos IDs da API e dos objetos JS.`);
     }
   })
 
@@ -553,7 +603,7 @@ function updateOrderSummary() {
   const totalAmountElement = document.getElementById("total-amount")
 
   if (!summaryContainer || !selectedItemsContainer || !totalAmountElement) {
-    debugLog("Elementos de resumo de pedido não encontrados.");
+    debugLog("updateOrderSummary: Elementos de resumo de pedido não encontrados no DOM.");
     return;
   }
 
@@ -570,14 +620,17 @@ function updateOrderSummary() {
       )
       .join("")
     totalAmountElement.textContent = total.toFixed(2).replace(".", ",")
+    debugLog(`updateOrderSummary: Resumo do pedido atualizado. Total: R$ ${total.toFixed(2)}`, selectedPizzas);
   } else {
     summaryContainer.style.display = "none"
+    debugLog("updateOrderSummary: Nenhuma pizza selecionada, resumo oculto.");
   }
 }
 
 // Manipulação de pedidos
 async function handleNewOrder(e) {
   e.preventDefault()
+  debugLog("handleNewOrder: Tentando criar novo pedido.")
 
   // Coletar pizzas selecionadas
   const selectedPizzas = [] // Vai armazenar apenas as chaves (IDs) da pizza
@@ -595,10 +648,16 @@ async function handleNewOrder(e) {
 
   if (selectedPizzas.length === 0) {
     showNotification("Por favor, selecione pelo menos uma pizza!", "error")
+    debugLog("handleNewOrder: Nenhuma pizza selecionada.");
     return
   }
 
   const token = localStorage.getItem("authToken")
+  if (!token) {
+    showNotification("Você precisa estar logado para fazer um pedido.", "error");
+    debugLog("handleNewOrder: Token de autenticação não encontrado.");
+    return;
+  }
 
   try {
     const { data } = await makeRequest("/api/orders", {
@@ -626,13 +685,16 @@ async function handleNewOrder(e) {
       showSection("meus-pedidos")
 
       showNotification("Pedido criado com sucesso!", "success")
+      debugLog("handleNewOrder: Pedido criado com sucesso!", data);
     } else {
       // Garantir que a mensagem é uma string
       showNotification(data.error || "Erro ao criar pedido", "error")
+      debugLog("handleNewOrder: Erro ao criar pedido do backend.", data);
     }
   } catch (error) {
     // Garantir que a mensagem é uma string
     showNotification(error.message || "Erro de conexão", "error")
+    debugLog("handleNewOrder: Erro na requisição para criar pedido.", error);
   }
 }
 

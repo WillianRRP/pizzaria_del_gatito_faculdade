@@ -1,12 +1,18 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Pizzaria Del Gatito - Alvorada Piratini</title>
-    <link rel="stylesheet" href="/static/css/styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/styles.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
 </head>
 <body>
     <div id="auth-screen" class="auth-screen">
@@ -30,11 +36,11 @@
                     <form id="login-form-element">
                         <div class="form-group">
                             <label for="login-email">E-mail</label>
-                            <input type="email" id="login-email" required>
+                            <input type="email" id="login-email" required />
                         </div>
                         <div class="form-group">
                             <label for="login-password">Senha</label>
-                            <input type="password" id="login-password" required>
+                            <input type="password" id="login-password" required />
                         </div>
                         <button type="submit" class="btn-primary full-width">
                             <span class="material-icons">login</span>
@@ -42,7 +48,7 @@
                         </button>
                     </form>
                     <p class="auth-switch">
-                        Não tem conta? 
+                        Não tem conta?
                         <a href="#" onclick="showRegisterForm()">Cadastre-se aqui</a>
                     </p>
                 </div>
@@ -52,15 +58,15 @@
                     <form id="register-form-element">
                         <div class="form-group">
                             <label for="register-name">Nome completo</label>
-                            <input type="text" id="register-name" required>
+                            <input type="text" id="register-name" required />
                         </div>
                         <div class="form-group">
                             <label for="register-email">E-mail</label>
-                            <input type="email" id="register-email" required>
+                            <input type="email" id="register-email" required />
                         </div>
                         <div class="form-group">
                             <label for="register-phone">Telefone</label>
-                            <input type="tel" id="register-phone" required>
+                            <input type="tel" id="register-phone" required />
                         </div>
                         <div class="form-group">
                             <label for="register-address">Endereço</label>
@@ -68,11 +74,15 @@
                         </div>
                         <div class="form-group">
                             <label for="register-password">Senha</label>
-                            <input type="password" id="register-password" required>
+                            <input type="password" id="register-password" required />
                         </div>
                         <div class="form-group">
                             <label for="register-confirm-password">Confirmar senha</label>
-                            <input type="password" id="register-confirm-password" required>
+                            <input
+                              type="password"
+                              id="register-confirm-password"
+                              required
+                            />
                         </div>
                         <button type="submit" class="btn-primary full-width">
                             <span class="material-icons">person_add</span>
@@ -80,7 +90,7 @@
                         </button>
                     </form>
                     <p class="auth-switch">
-                        Já tem conta? 
+                        Já tem conta?
                         <a href="#" onclick="showLoginForm()">Entre aqui</a>
                     </p>
                 </div>
@@ -102,7 +112,9 @@
                     </div>
                 </div>
                 <div class="header-user">
-                    <span class="user-welcome">Olá, <span id="user-name"></span>!</span>
+                    <span class="user-welcome"
+                      >Olá, <span id="user-name"></span>!</span
+                    >
                     <button class="btn-logout" onclick="logout()">
                         <span class="material-icons">logout</span>
                         Sair
@@ -135,8 +147,7 @@
                             Novo Pedido
                         </button>
                     </div>
-                    <div class="orders-grid" id="my-orders-container">
-                        </div>
+                    <div class="orders-grid" id="my-orders-container"></div>
                 </section>
 
                 <section id="fazer-pedido" class="section">
@@ -152,54 +163,95 @@
                                 <p><strong>Endereço:</strong> <span id="customer-display-address"></span></p>
                             </div>
                         </div>
-                        
+
                         <div class="form-group">
                             <label>Selecione suas pizzas</label>
                             <div class="pizza-selection">
                                 <div class="pizza-item">
-                                    <input type="checkbox" id="margherita" value="margherita">
+                                    <input type="checkbox" id="margherita" value="margherita" />
                                     <label for="margherita">
                                         <div class="pizza-info">
                                             <span class="pizza-name">Margherita</span>
                                             <span class="pizza-price">R$ 25,00</span>
                                         </div>
-                                        <div class="pizza-description">Molho de tomate, mussarela e manjericão</div>
+                                        <div class="pizza-description">
+                                            Molho de tomate, mussarela e manjericão
+                                        </div>
                                     </label>
                                 </div>
+
                                 <div class="pizza-item">
-                                    <input type="checkbox" id="pepperoni" value="pepperoni">
+                                    <input type="checkbox" id="pepperoni" value="pepperoni" />
                                     <label for="pepperoni">
                                         <div class="pizza-info">
                                             <span class="pizza-name">Pepperoni</span>
                                             <span class="pizza-price">R$ 30,00</span>
                                         </div>
-                                        <div class="pizza-description">Molho de tomate, mussarela e pepperoni</div>
+                                        <div class="pizza-description">
+                                            Molho de tomate, mussarela e pepperoni
+                                        </div>
                                     </label>
                                 </div>
+
                                 <div class="pizza-item">
-                                    <input type="checkbox" id="calabresa" value="calabresa">
+                                    <input type="checkbox" id="calabresa" value="calabresa" />
                                     <label for="calabresa">
                                         <div class="pizza-info">
                                             <span class="pizza-name">Calabresa</span>
-                                            <span class="pizza-price">R$ 28,00</span>
+                                            <span class="pizza-price">R$ 33,00</span>
                                         </div>
-                                        <div class="pizza-description">Molho de tomate, mussarela, calabresa e cebola</div>
+                                        <div class="pizza-description">
+                                            Molho de tomate, mussarela, calabresa e cebola
+                                        </div>
                                     </label>
                                 </div>
+
                                 <div class="pizza-item">
-                                    <input type="checkbox" id="quatro-queijos" value="quatro-queijos">
+                                    <input type="checkbox" id="quatro-queijos" value="quatro-queijos" />
                                     <label for="quatro-queijos">
                                         <div class="pizza-info">
                                             <span class="pizza-name">Quatro Queijos</span>
                                             <span class="pizza-price">R$ 32,00</span>
                                         </div>
-                                        <div class="pizza-description">Mussarela, provolone, parmesão e gorgonzola</div>
+                                        <div class="pizza-description">
+                                            Mussarela, provolone, parmesão e gorgonzola
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <div class="pizza-item">
+                                    <input type="checkbox" id="especial-del-gatito" value="especial-del-gatito" />
+                                    <label for="especial-del-gatito">
+                                        <div class="pizza-info">
+                                            <span class="pizza-name">Especial Del Gatito</span>
+                                            <span class="pizza-price">R$ 35,00</span>
+                                        </div>
+                                        <div class="pizza-description">
+                                            Molho rústico, quatro queijos, mignon, cebola caramelizada, catupiry e rúcula
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <div class="pizza-item">
+                                    <input type="checkbox" id="hawaiana" value="hawaiana" />
+                                    <label for="hawaiana">
+                                        <div class="pizza-info">
+                                            <span class="pizza-name">Hawaiana</span>
+                                            <span class="pizza-price">R$ 30,00</span>
+                                        </div>
+                                        <div class="pizza-description">
+                                            Molho de tomate, mussarela, presunto e abacaxi
+                                        </div>
                                     </label>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="order-summary" id="order-summary" style="display: none;">
+                        <div
+                          class="order-summary"
+                          id="order-summary"
+                          style="display: none"
+                        >
                             <h3>Resumo do Pedido</h3>
                             <div id="selected-items"></div>
                             <div class="total-price">
@@ -208,7 +260,13 @@
                         </div>
 
                         <div class="form-actions">
-                            <button type="button" class="btn-secondary" onclick="showSection('meus-pedidos')">Cancelar</button>
+                            <button
+                              type="button"
+                              class="btn-secondary"
+                              onclick="showSection('meus-pedidos')"
+                            >
+                                Cancelar
+                            </button>
                             <button type="submit" class="btn-primary">
                                 <span class="material-icons">shopping_cart</span>
                                 Fazer Pedido
@@ -221,14 +279,12 @@
                     <div class="section-header">
                         <h2>Meu Histórico de Pedidos</h2>
                     </div>
-                    <div class="orders-grid" id="my-history-container">
-                        </div>
+                    <div class="orders-grid" id="my-history-container"></div>
                 </section>
             </div>
         </main>
     </div>
 
     <script src="/static/js/script.js"></script>
-
 </body>
 </html>

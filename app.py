@@ -236,15 +236,19 @@ def get_current_user(request_obj) -> dict | None:
 PIZZA_PRICES = {
     'margherita': 25.00,
     'pepperoni': 30.00,
-    'calabresa': 28.00,
-    'quatro-queijos': 32.00
+    'calabresa': 23.00,
+    'quatro-queijos': 32.00,
+    'Especial-Del-Gatito': 35.00,
+    'Hawaiana': 30.00
 }
 
 PIZZA_NAMES = {
     'margherita': 'Margherita',
     'pepperoni': 'Pepperoni',
     'calabresa': 'Calabresa',
-    'quatro-queijos': 'Quatro Queijos'
+    'quatro-queijos': 'Quatro Queijos',
+    'Especial-Del-Gatito': 'Especial Del Gatito',
+    'Hawaiana': 'Hawaiana'
 }
 
 # --- Inicialização do Banco de Dados e Usuário Master ---
