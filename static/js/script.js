@@ -35,8 +35,7 @@ function testConnection() {
     })
     .catch((error) => {
       debugLog("Erro de conexão com servidor", error)
-      // Garantir que a mensagem é uma string
-      showNotification(error.message || "Erro de conexão com o servidor", "error")
+      showNotification("Erro de conexão com o servidor", "error")
     })
 }
 
@@ -72,7 +71,7 @@ async function makeRequest(url, options = {}) {
     if (!contentType || !contentType.includes("application/json")) {
       const text = await response.text()
       debugLog(`Resposta não é JSON de ${url}`, text.substring(0, 200))
-      throw new Error(`Servidor retornou ${response.status}: Resposta não é JSON. Conteúdo: ${text.substring(0, 500)}`)
+      throw new Error(`Servidor retornou ${response.status}: Resposta não é JSON`)
     }
 
     const data = await response.json()
@@ -81,8 +80,7 @@ async function makeRequest(url, options = {}) {
     return { response, data }
   } catch (error) {
     debugLog(`Erro na requisição para ${url}`, error)
-    // O erro já é uma instância de Error, então error.message é uma string.
-    throw error // Re-lança o erro para ser pego pelos handlers de nível superior
+    throw error
   }
 }
 
@@ -108,7 +106,6 @@ document.addEventListener("DOMContentLoaded", () => {
   testConnection()
   checkAuthStatus()
   setupEventListeners()
-  loadPizzas() // Carrega as pizzas assim que o DOM estiver pronto
 })
 
 // Verificar se usuário está logado
@@ -134,15 +131,11 @@ async function checkAuthStatus() {
       } else {
         debugLog("Token inválido, removendo...")
         localStorage.removeItem("authToken")
-        // Garantir que a mensagem é uma string
-        showNotification(data.error || "Token inválido ou expirado. Faça login novamente.", "error")
         showAuthScreen()
       }
     } catch (error) {
       debugLog("Erro na verificação de token", error)
       localStorage.removeItem("authToken")
-      // Garantir que a mensagem é uma string
-      showNotification(error.message || "Erro ao verificar sessão.", "error")
       showAuthScreen()
     }
   } else {
@@ -157,7 +150,7 @@ function setupEventListeners() {
   document.getElementById("login-form-element").addEventListener("submit", handleLogin)
   document.getElementById("register-form-element").addEventListener("submit", handleRegister)
 
-  // Botões de navegação
+  // Navegação
   document.querySelectorAll(".nav-btn").forEach((btn) => {
     btn.addEventListener("click", function () {
       const section = this.dataset.section
@@ -170,10 +163,9 @@ function setupEventListeners() {
   document.getElementById("order-form").addEventListener("submit", handleNewOrder)
 
   // Checkboxes de pizza para calcular total
-  // Os listeners são adicionados em loadPizzas agora
-  
-  // Botão de logout
-  document.querySelector('.btn-logout').addEventListener('click', logout);
+  document.querySelectorAll('.pizza-item input[type="checkbox"]').forEach((checkbox) => {
+    checkbox.addEventListener("change", updateOrderSummary)
+  })
 }
 
 // Autenticação
@@ -195,14 +187,10 @@ function showAuthScreen() {
 function showMainApp() {
   document.getElementById("auth-screen").style.display = "none"
   document.getElementById("main-app").style.display = "block"
-  // Atualiza nome do usuário no cabeçalho
-  const userNameElement = document.getElementById("user-name");
-  if (userNameElement) {
-    userNameElement.textContent = currentUser.name;
-  }
+  document.getElementById("user-name").textContent = currentUser.name
   updateCustomerDisplay()
   loadUserData()
-  showSection("meus-pedidos") // Mostra "Meus Pedidos" por padrão ao logar
+  showSection("meus-pedidos")
 }
 
 async function handleLogin(e) {
@@ -227,18 +215,12 @@ async function handleLogin(e) {
       currentUser = data.user
       showMainApp()
       showNotification("Login realizado com sucesso!", "success")
-      // Redireciona para admin.html se for admin/master
-      if (currentUser.role === 'admin' || currentUser.role === 'master') {
-          window.location.href = '/admin.html';
-      }
     } else {
-      // Garantir que a mensagem é uma string
       showNotification(data.error || "Erro ao fazer login", "error")
     }
   } catch (error) {
     debugLog("Erro no login", error)
-    // Garantir que a mensagem é uma string
-    showNotification(error.message || "Erro de conexão com o servidor", "error")
+    showNotification("Erro de conexão com o servidor", "error")
   }
 }
 
@@ -286,13 +268,11 @@ async function handleRegister(e) {
       // Limpar formulário
       document.getElementById("register-form-element").reset()
     } else {
-      // Garantir que a mensagem é uma string
       showNotification(data.error || "Erro ao cadastrar", "error")
     }
   } catch (error) {
     debugLog("Erro no cadastro", error)
-    // Garantir que a mensagem é uma string
-    showNotification(error.message || "Erro de conexão com o servidor", "error")
+    showNotification("Erro de conexão com o servidor", "error")
   }
 }
 
@@ -329,10 +309,6 @@ function showSection(sectionId) {
   } else if (sectionId === "meu-historico") {
     renderMyHistory()
   }
-  // No "fazer-pedido" não há renderização pesada, apenas atualização do resumo
-  if (sectionId === "fazer-pedido") {
-    updateOrderSummary();
-  }
 }
 
 function updateActiveNavButton(activeBtn) {
@@ -345,10 +321,6 @@ function updateActiveNavButton(activeBtn) {
 // Carregar dados do usuário
 async function loadUserData() {
   const token = localStorage.getItem("authToken")
-  if (!token) {
-    debugLog("loadUserData: Token não encontrado, pulando carregamento de dados.")
-    return;
-  }
 
   try {
     // Carregar pedidos do usuário
@@ -361,9 +333,6 @@ async function loadUserData() {
     if (ordersData.success) {
       userOrders = ordersData.orders
       renderMyOrders()
-    } else {
-      // Garantir que a mensagem é uma string
-      showNotification(ordersData.error || "Erro ao carregar pedidos ativos.", "error")
     }
 
     // Carregar histórico do usuário
@@ -376,85 +345,22 @@ async function loadUserData() {
     if (historyData.success) {
       userHistory = historyData.orders
       renderMyHistory()
-    } else {
-      // Garantir que a mensagem é uma string
-      showNotification(historyData.error || "Erro ao carregar histórico de pedidos.", "error")
     }
   } catch (error) {
     debugLog("Erro ao carregar dados do usuário", error)
-    // Garantir que a mensagem é uma string
-    showNotification(error.message || "Erro de conexão ao carregar dados.", "error")
   }
 }
 
 // Atualizar exibição dos dados do cliente
 function updateCustomerDisplay() {
-  const nameElement = document.getElementById("customer-display-name");
-  const phoneElement = document.getElementById("customer-display-phone");
-  const addressElement = document.getElementById("customer-display-address");
-
-  if (nameElement) nameElement.textContent = currentUser.name;
-  if (phoneElement) phoneElement.textContent = currentUser.phone;
-  if (addressElement) addressElement.textContent = currentUser.address;
+  document.getElementById("customer-display-name").textContent = currentUser.name
+  document.getElementById("customer-display-phone").textContent = currentUser.phone
+  document.getElementById("customer-display-address").textContent = currentUser.address
 }
 
-// Renderização de pizzas (para a seção "Fazer Pedido")
-async function loadPizzas() {
-  debugLog("Carregando pizzas para a seleção...")
-  try {
-    const { data } = await makeRequest("/api/pizzas")
-    if (data.success && data.pizzas && Array.isArray(data.pizzas)) {
-      const pizzaSelectionDiv = document.querySelector(".pizza-selection")
-      if (pizzaSelectionDiv) {
-        pizzaSelectionDiv.innerHTML = data.pizzas.map(pizza => `
-          <div class="pizza-item">
-              <input type="checkbox" id="${pizza.id}" value="${pizza.id}" data-price="${pizza.price}">
-              <label for="${pizza.id}">
-                  <div class="pizza-info">
-                      <span class="pizza-name">${pizza.name}</span>
-                      <span class="pizza-price">R$ ${parseFloat(pizza.price).toFixed(2).replace('.', ',')}</span>
-                  </div>
-                  <div class="pizza-description">${getPizzaDescription(pizza.id)}</div>
-              </label>
-          </div>
-        `).join('');
-
-        // Adiciona event listeners APÓS a renderização
-        document.querySelectorAll('.pizza-item input[type="checkbox"]').forEach((checkbox) => {
-          checkbox.addEventListener("change", updateOrderSummary);
-        });
-        updateOrderSummary(); // Atualiza o resumo inicial
-      }
-    } else {
-      // Garantir que a mensagem é uma string
-      showNotification(data.error || "Erro ao carregar lista de pizzas.", "error")
-    }
-  } catch (error) {
-    debugLog("Erro ao carregar pizzas", error);
-    // Garantir que a mensagem é uma string
-    showNotification(error.message || "Erro de conexão ao carregar pizzas.", "error")
-  }
-}
-
-// Função auxiliar para obter descrição da pizza (se precisar)
-function getPizzaDescription(pizzaId) {
-    switch (pizzaId) {
-        case 'margherita': return 'Molho de tomate, mussarela e manjericão';
-        case 'pepperoni': return 'Molho de tomate, mussarela e pepperoni';
-        case 'calabresa': return 'Molho de tomate, mussarela, calabresa e cebola';
-        case 'quatro-queijos': return 'Mussarela, provolone, parmesão e gorgonzola';
-        default: return 'Deliciosa pizza!';
-    }
-}
-
-
-// Renderização de pedidos (AGORA COM OS ITENS FORMATADOS CORRETAMENTE)
+// Renderização de pedidos
 function renderMyOrders() {
   const container = document.getElementById("my-orders-container")
-  if (!container) {
-    debugLog("Elemento #my-orders-container não encontrado.");
-    return;
-  }
 
   if (userOrders.length === 0) {
     container.innerHTML = `
@@ -472,10 +378,6 @@ function renderMyOrders() {
 
 function renderMyHistory() {
   const container = document.getElementById("my-history-container")
-  if (!container) {
-    debugLog("Elemento #my-history-container não encontrado.");
-    return;
-  }
 
   if (userHistory.length === 0) {
     container.innerHTML = `
@@ -491,26 +393,20 @@ function renderMyHistory() {
   container.innerHTML = userHistory.map((order) => createOrderCard(order, true)).join("")
 }
 
-// FUNÇÃO ATUALIZADA PARA FORMATAR OS ITENS CORRETAMENTE
 function createOrderCard(order, isHistory = false) {
-  const statusClass = `status-${order.status.replace(" ", "-")}` // Ajuste para status com espaço
+  const statusClass = `status-${order.status.replace("-", "-")}`
   const statusText = getStatusText(order.status)
-
-  // Formatar itens do pedido para exibição
-  const formattedItems = Array.isArray(order.items)
-    ? order.items.map((item) => `<li>• ${item.name || item} (R$ ${(item.price || 0).toFixed(2).replace('.', ',')})</li>`).join("")
-    : `<li>${order.items || "Nenhum item especificado"}</li>`; // Fallback caso 'items' não seja um array ou seja nulo
 
   return `
         <div class="order-card">
             <div class="order-header">
-                <div class="order-id">Pedido #${isHistory ? order.originalOrderId : order.id}</div>
+                <div class="order-id">Pedido #${order.id}</div>
                 <div class="order-status ${statusClass}">${statusText}</div>
             </div>
             <div class="order-info">
                 <p><strong>Data:</strong> ${formatDate(new Date(order.createdAt))}</p>
                 ${
-                  order.updatedAt && order.updatedAt !== order.createdAt
+                  order.updatedAt !== order.createdAt
                     ? `<p><strong>Atualizado:</strong> ${formatDate(new Date(order.updatedAt))}</p>`
                     : ""
                 }
@@ -518,16 +414,35 @@ function createOrderCard(order, isHistory = false) {
             <div class="order-items">
                 <h4>Itens do Pedido:</h4>
                 <ul>
-                    ${formattedItems}
+                    ${order.items.map((item) => `<li>• ${item}</li>`).join("")}
                 </ul>
             </div>
             <div class="order-total">
-                Total: R$ ${parseFloat(order.total).toFixed(2).replace(".", ",")}
+                Total: R$ ${order.total.toFixed(2)}
             </div>
         </div>
     `
 }
 
+function getStatusText(status) {
+  const statusMap = {
+    pendente: "Pendente",
+    preparando: "Preparando",
+    "saiu-entrega": "Saiu p/ Entrega",
+    entregue: "Entregue",
+  }
+  return statusMap[status] || status
+}
+
+function formatDate(date) {
+  return date.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+}
 
 // Atualizar resumo do pedido
 function updateOrderSummary() {
@@ -536,26 +451,16 @@ function updateOrderSummary() {
 
   document.querySelectorAll('.pizza-item input[type="checkbox"]:checked').forEach((checkbox) => {
     const pizzaKey = checkbox.value
-    // Certificar-se de que pizzaNames[pizzaKey] e pizzaPrices[pizzaKey] existem
-    if (pizzaNames[pizzaKey] && pizzaPrices[pizzaKey]) {
-        selectedPizzas.push({
-            name: pizzaNames[pizzaKey],
-            price: pizzaPrices[pizzaKey],
-        })
-        total += pizzaPrices[pizzaKey]
-    } else {
-        debugLog(`Erro: Pizza ${pizzaKey} não encontrada em pizzaNames ou pizzaPrices.`);
-    }
+    selectedPizzas.push({
+      name: pizzaNames[pizzaKey],
+      price: pizzaPrices[pizzaKey],
+    })
+    total += pizzaPrices[pizzaKey]
   })
 
   const summaryContainer = document.getElementById("order-summary")
   const selectedItemsContainer = document.getElementById("selected-items")
   const totalAmountElement = document.getElementById("total-amount")
-
-  if (!summaryContainer || !selectedItemsContainer || !totalAmountElement) {
-    debugLog("Elementos de resumo de pedido não encontrados.");
-    return;
-  }
 
   if (selectedPizzas.length > 0) {
     summaryContainer.style.display = "block"
@@ -564,7 +469,7 @@ function updateOrderSummary() {
         (pizza) => `
             <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
                 <span>${pizza.name}</span>
-                <span>R$ ${pizza.price.toFixed(2).replace(".", ",")}</span>
+                <span>R$ ${pizza.price.toFixed(2)}</span>
             </div>
         `,
       )
@@ -580,17 +485,13 @@ async function handleNewOrder(e) {
   e.preventDefault()
 
   // Coletar pizzas selecionadas
-  const selectedPizzas = [] // Vai armazenar apenas as chaves (IDs) da pizza
+  const selectedPizzas = []
   let total = 0
 
   document.querySelectorAll('.pizza-item input[type="checkbox"]:checked').forEach((checkbox) => {
     const pizzaKey = checkbox.value
-    // A API espera uma lista de STRINGS com os nomes das pizzas, não objetos.
-    // O backend irá mapear esses nomes para preços.
-    if (pizzaNames[pizzaKey] && pizzaPrices[pizzaKey]) { // Verifica se existe antes de adicionar
-        selectedPizzas.push(pizzaNames[pizzaKey]) // Envia o nome completo da pizza
-        total += pizzaPrices[pizzaKey]
-    }
+    selectedPizzas.push(pizzaNames[pizzaKey])
+    total += pizzaPrices[pizzaKey]
   })
 
   if (selectedPizzas.length === 0) {
@@ -607,7 +508,7 @@ async function handleNewOrder(e) {
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
-        items: selectedPizzas, // Envia lista de nomes de pizza, como esperado pelo backend
+        items: selectedPizzas,
         total: total,
       }),
     })
@@ -627,25 +528,18 @@ async function handleNewOrder(e) {
 
       showNotification("Pedido criado com sucesso!", "success")
     } else {
-      // Garantir que a mensagem é uma string
       showNotification(data.error || "Erro ao criar pedido", "error")
     }
   } catch (error) {
-    // Garantir que a mensagem é uma string
-    showNotification(error.message || "Erro de conexão", "error")
+    showNotification("Erro de conexão", "error")
   }
 }
 
 // Notificações
 function showNotification(message, type = "info") {
-  // Limpa notificações existentes para evitar acúmulo
-  const existingNotifications = document.querySelectorAll('.notification');
-  existingNotifications.forEach(n => n.remove());
-
   const notification = document.createElement("div")
   notification.className = `notification notification-${type}`
-  // Converte a mensagem para string, caso seja um objeto ou outro tipo
-  notification.textContent = String(message)
+  notification.textContent = message
 
   notification.style.animation = "slideIn 0.3s ease"
 
@@ -658,26 +552,5 @@ function showNotification(message, type = "info") {
         document.body.removeChild(notification)
       }
     }, 300)
-  }, 5000) // Aumentado para 5 segundos para melhor visibilidade
-}
-
-// Funções utilitárias de formatação
-function getStatusText(status) {
-  const statusMap = {
-    'pendente': 'Pendente',
-    'preparando': 'Preparando',
-    'saiu-entrega': 'Saiu p/ Entrega',
-    'entregue': 'Entregue'
-  }
-  return statusMap[status] || status
-}
-
-function formatDate(date) {
-  return date.toLocaleString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  })
+  }, 3000)
 }
