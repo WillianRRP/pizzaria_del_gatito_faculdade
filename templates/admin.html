@@ -328,15 +328,15 @@
                         <p><strong>Endereço:</strong> ${order.customerAddress}</p>
                         <p><strong>Data:</strong> ${formatDate(new Date(order.createdAt))}</p>
                     </div>
-                    <div class="order-items">
-                        <h4>Itens do Pedido:</h4>
-                        <ul>
-                            ${order.items.map(item => `<li>• ${item.name}</li>`).join('')}
-                        </ul>
-                    </div>
-                    <div class="order-total">
-                        Total: R$ ${order.total.toFixed(2)}
-                    </div>
+                    <<div class="order-items">
+    <h4>Itens do Pedido:</h4>
+    <ul>
+        ${order.items.map(item => `<li>• ${item.name || item} (R$ ${new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.price || 0)})</li>`).join('')}
+    </ul>
+</div>
+<div class="order-total">
+    Total: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.total)}
+</div>
                     <div class="status-buttons">
                         <button class="status-btn pendente" onclick="updateOrderStatus(${order.id}, 'pendente')">
                             Pendente
