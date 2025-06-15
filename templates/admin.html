@@ -8,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
+        /* Estilos CSS internos da página admin.html */
         .admin-header {
             background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
         }
@@ -152,7 +153,8 @@
                         <h2>Dashboard</h2>
                     </div>
                     <div class="admin-stats" id="admin-stats-container">
-                        </div>
+                        <!-- Estatísticas serão carregadas aqui -->
+                    </div>
                 </section>
 
                 <section id="admin-orders" class="section" style="display: none;">
@@ -176,7 +178,8 @@
                                 </tr>
                             </thead>
                             <tbody id="admin-orders-tbody">
-                                </tbody>
+                                <!-- Pedidos serão injetados aqui -->
+                            </tbody>
                         </table>
                     </div>
                 </section>
@@ -197,7 +200,8 @@
                                 </tr>
                             </thead>
                             <tbody id="admin-history-tbody">
-                                </tbody>
+                                <!-- Histórico será injetado aqui -->
+                            </tbody>
                         </table>
                     </div>
                 </section>
@@ -220,7 +224,7 @@
             }
         }
 
-        // Funções de Utilitário (podem ser movidas para um arquivo utils.js se compartilhadas)
+        // Funções de Utilitário
         function getStatusText(status) {
             const statusMap = {
                 'pendente': 'Pendente',
@@ -243,19 +247,25 @@
             });
         }
 
-        // --- FUNÇÃO ADICIONADA/MODIFICADA: Formata a lista de itens de um pedido ---
+        // Formata a lista de itens de um pedido
         function formatOrderItems(items) {
             if (!items || !Array.isArray(items) || items.length === 0) {
                 return 'Nenhum item.';
             }
             // Retorna uma lista HTML para melhor visualização na tabela
-            return `<ul class="order-items-list">${items.map(item => `<li>${item.name} (R$ ${parseFloat(item.price).toFixed(2)})</li>`).join('')}</ul>`;
+            return `<ul class="order-items-list">${items.map(item => `<li>${item.name} (R$ ${parseFloat(item.price).toFixed(2).replace('.', ',')})</li>`).join('')}</ul>`;
         }
 
+        // Função de Notificação (Melhorada para lidar com mensagens de objeto)
         function showNotification(message, type = 'info') {
+            // Limpa notificações existentes para evitar acúmulo
+            const existingNotifications = document.querySelectorAll('.notification');
+            existingNotifications.forEach(n => n.remove());
+
             const notification = document.createElement('div');
             notification.className = `notification notification-${type}`;
-            notification.textContent = message;
+            // Converte a mensagem para string, caso seja um objeto ou outro tipo
+            notification.textContent = String(message);
             notification.style.animation = 'slideIn 0.3s ease';
             document.body.appendChild(notification);
 
@@ -274,7 +284,8 @@
             const token = localStorage.getItem("authToken");
             if (!token) {
                 showNotification("Sessão expirada. Faça login novamente.", "error");
-                window.location.href = '/'; // Redireciona para a tela de login
+                window.location.replace('/'); // Alterado para window.location.replace
+                // Lança um erro para interromper a execução da função makeAdminRequest
                 throw new Error("Token de autenticação não encontrado.");
             }
 
@@ -297,13 +308,15 @@
                 if (response.status === 401 || response.status === 403) {
                     showNotification("Acesso negado ou sessão expirada.", "error");
                     localStorage.removeItem("authToken");
-                    window.location.href = '/'; // Redireciona para a tela de login
+                    window.location.replace('/'); // Alterado para window.location.replace
                     throw new Error("Acesso não autorizado.");
                 }
 
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => null);
-                    throw new Error(errorData?.error || `HTTP ${response.status}: ${response.statusText}`);
+                    // Garante que a mensagem de erro é uma string para showNotification
+                    const errorMessage = errorData?.error || `HTTP ${response.status}: ${response.statusText}`;
+                    throw new Error(errorMessage); // Lança o erro como uma string
                 }
 
                 const data = await response.json();
@@ -311,8 +324,9 @@
                 return { response, data };
             } catch (error) {
                 debugLogAdmin(`Erro na requisição admin para ${url}`, error);
+                // showNotification já recebe uma string de error.message
                 showNotification(error.message || "Erro de conexão com o servidor admin.", "error");
-                throw error;
+                throw error; // Re-lança o erro para ser pego pelos handlers de nível superior
             }
         }
 
@@ -324,30 +338,32 @@
                 if (statsData.success) {
                     adminStats = statsData.stats;
                     renderAdminStats();
+                } else {
+                    showNotification(statsData.error || "Erro ao carregar estatísticas do admin.", "error");
                 }
 
                 const { data: ordersData } = await makeAdminRequest("/api/admin/orders");
                 if (ordersData.success) {
                     adminOrders = ordersData.orders;
                     renderAdminOrders();
+                } else {
+                    showNotification(ordersData.error || "Erro ao carregar pedidos ativos do admin.", "error");
                 }
 
-                // Para histórico, você pode criar uma rota separada ou filtrar orders
-                // Assumindo que você terá uma rota /api/admin/history para histórico
-                // Ou você pode filtrar de todos os pedidos, mas uma rota dedicada é melhor
-                // Por enquanto, usaremos os dados de stats para o contador de histórico,
-                // mas você precisaria de uma rota ou lógica para exibir os detalhes
-                 renderAdminHistory(); // Chamada para renderizar o histórico (mesmo que vazio por enquanto)
-
+                await renderAdminHistory(); // Garante que o histórico é carregado após os outros
             } catch (error) {
                 debugLogAdmin("Erro ao carregar dados do admin:", error);
-                // Notificações já são mostradas por makeAdminRequest
+                // showNotification já é chamada por makeAdminRequest no catch principal
             }
         }
 
         // --- Funções de Renderização ---
         function renderAdminStats() {
             const container = document.getElementById("admin-stats-container");
+            if (!container) {
+                debugLogAdmin("Elemento #admin-stats-container não encontrado.");
+                return;
+            }
             container.innerHTML = `
                 <div class="stat-card">
                     <span class="material-icons" style="font-size: 3rem; color: #17a2b8;">group</span>
@@ -366,12 +382,12 @@
                 </div>
                 <div class="stat-card">
                     <span class="material-icons" style="font-size: 3rem; color: #6f42c1;">attach_money</span>
-                    <div class="stat-number">R$ ${parseFloat(adminStats.total_revenue || 0).toFixed(2)}</div>
+                    <div class="stat-number">R$ ${parseFloat(adminStats.total_revenue || 0).toFixed(2).replace('.', ',')}</div>
                     <div class="stat-label">Faturamento Total</div>
                 </div>
                 <div class="stat-card">
                     <span class="material-icons" style="font-size: 3rem; color: #dc3545;">hourglass_empty</span>
-                    <div class="stat-number">R$ ${parseFloat(adminStats.pending_revenue || 0).toFixed(2)}</div>
+                    <div class="stat-number">R$ ${parseFloat(adminStats.pending_revenue || 0).toFixed(2).replace('.', ',')}</div>
                     <div class="stat-label">Receita Pendente</div>
                 </div>
             `;
@@ -379,6 +395,10 @@
 
         function renderAdminOrders() {
             const tbody = document.getElementById("admin-orders-tbody");
+            if (!tbody) {
+                debugLogAdmin("Elemento #admin-orders-tbody não encontrado.");
+                return;
+            }
             tbody.innerHTML = ""; // Limpa conteúdo anterior
 
             if (adminOrders.length === 0) {
@@ -394,7 +414,7 @@
                     <td>${order.customerAddress || 'N/A'}</td>
                     <td>${order.customerPhone || 'N/A'}</td>
                     <td>${formatOrderItems(order.items)}</td>
-                    <td>R$ ${parseFloat(order.total).toFixed(2)}</td>
+                    <td>R$ ${parseFloat(order.total).toFixed(2).replace('.', ',')}</td>
                     <td>${getStatusText(order.status)}</td>
                     <td>${formatDate(order.createdAt)}</td>
                     <td>${formatDate(order.updatedAt)}</td>
@@ -413,21 +433,25 @@
         }
 
         async function renderAdminHistory() {
-             const tbody = document.getElementById("admin-history-tbody");
-             tbody.innerHTML = ""; // Limpa conteúdo anterior
+            const tbody = document.getElementById("admin-history-tbody");
+            if (!tbody) {
+                debugLogAdmin("Elemento #admin-history-tbody não encontrado.");
+                return;
+            }
+            tbody.innerHTML = ""; // Limpa conteúdo anterior
 
-             try {
-                const { data: historyData } = await makeAdminRequest("/api/admin/history"); // Assumindo nova rota
+            try {
+                const { data: historyData } = await makeAdminRequest("/api/admin/history");
                 if (historyData.success) {
                     adminHistory = historyData.orders;
                 } else {
                     showNotification(historyData.error || "Erro ao carregar histórico de pedidos do admin", "error");
                     return;
                 }
-             } catch (error) {
-                 // Erro já tratado por makeAdminRequest
-                 return;
-             }
+            } catch (error) {
+                // Erro já tratado por makeAdminRequest e sua notificação.
+                return;
+            }
              
             if (adminHistory.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="5">Nenhum pedido no histórico.</td></tr>';
@@ -440,7 +464,7 @@
                     <td>${order.originalOrderId}</td>
                     <td>${order.customerName}</td>
                     <td>${formatOrderItems(order.items)}</td>
-                    <td>R$ ${parseFloat(order.total).toFixed(2)}</td>
+                    <td>R$ ${parseFloat(order.total).toFixed(2).replace('.', ',')}</td>
                     <td>${formatDate(order.completedAt)}</td>
                 `;
                 tbody.appendChild(tr);
@@ -449,6 +473,11 @@
 
         async function updateOrderStatus(orderId) {
             const selectElement = document.getElementById(`status-select-${orderId}`);
+            if (!selectElement) {
+                debugLogAdmin(`Elemento de seleção de status para pedido ${orderId} não encontrado.`);
+                showNotification('Erro interno: Elemento de status não encontrado.', 'error');
+                return;
+            }
             const newStatus = selectElement.value;
             debugLogAdmin(`Atualizando status do pedido ${orderId} para ${newStatus}...`);
 
@@ -463,10 +492,12 @@
                     // Recarregar todos os dados para refletir as mudanças (incluindo mover para histórico)
                     loadAdminData();
                 } else {
+                    // Garante que a mensagem é uma string
                     showNotification(data.error || 'Erro ao atualizar pedido', 'error');
                 }
             } catch (error) {
-                showNotification('Erro de conexão', 'error');
+                // showNotification já é chamada pelo makeAdminRequest no catch principal
+                debugLogAdmin('Erro de conexão no updateOrderStatus', error);
             }
         }
 
@@ -475,12 +506,25 @@
             document.querySelectorAll(".section").forEach((section) => {
                 section.style.display = "none";
             });
-            document.getElementById(sectionId).style.display = "block";
+            const targetSection = document.getElementById(sectionId);
+            if (targetSection) {
+                targetSection.style.display = "block";
+            } else {
+                debugLogAdmin(`Seção com ID "${sectionId}" não encontrada.`);
+                return;
+            }
+            
 
             document.querySelectorAll(".sidebar-link").forEach(link => {
                 link.classList.remove("active");
             });
-            document.querySelector(`.sidebar-link[data-section="${sectionId}"]`).classList.add("active");
+            const activeLink = document.querySelector(`.sidebar-link[data-section="${sectionId}"]`);
+            if (activeLink) {
+                activeLink.classList.add("active");
+            } else {
+                debugLogAdmin(`Link da sidebar para a seção "${sectionId}" não encontrado.`);
+            }
+
 
             // Atualiza o conteúdo da seção ao mostrá-la
             if (sectionId === 'admin-dashboard') {
@@ -497,7 +541,7 @@
             // Verifica se o usuário é um admin ao carregar a página admin.html
             const token = localStorage.getItem("authToken");
             if (!token) {
-                window.location.href = '/'; // Redireciona se não houver token
+                window.location.replace('/'); // Alterado para window.location.replace
                 return;
             }
 
@@ -513,19 +557,19 @@
                     showAdminSection('admin-dashboard'); // Mostra o dashboard por padrão
                 } else {
                     showNotification("Acesso negado. Apenas para administradores.", "error");
-                    window.location.href = '/'; // Redireciona se não for admin
+                    window.location.replace('/'); // Alterado para window.location.replace
                 }
             } catch (error) {
                 debugLogAdmin("Erro na verificação de token do admin.", error);
-                // showNotification já é chamada por makeAdminRequest
-                window.location.href = '/'; // Redireciona em caso de erro na verificação
+                // showNotification já é chamada por makeAdminRequest no catch principal
+                window.location.replace('/'); // Alterado para window.location.replace
             }
 
             const logoutButton = document.getElementById("logout-button");
             if (logoutButton) {
                 logoutButton.addEventListener("click", () => {
                     localStorage.removeItem("authToken");
-                    window.location.href = '/'; // Redireciona para a página principal após logout
+                    window.location.replace('/'); // Alterado para window.location.replace
                 });
             }
 
