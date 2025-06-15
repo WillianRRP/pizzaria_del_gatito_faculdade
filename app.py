@@ -682,6 +682,24 @@ def admin_redirect():
     """Redireciona de /admin para /admin.html."""
     print("[DEBUG] Redirecionando /admin para /admin.html")
     return redirect(url_for('admin_page'))
+@app.route('/api/admin/history', methods=['GET'])
+def api_admin_history():
+    """Rota para o administrador visualizar o histórico completo de pedidos."""
+    print("[DEBUG] Rota /api/admin/history (GET) chamada")
+
+    try:
+        user = get_current_user(request)
+        if not user or not is_master_user(user):
+            return jsonify({'success': False, 'error': 'Acesso negado. Apenas para administradores.'}), 403
+
+        all_history_db = OrderHistory.query.order_by(OrderHistory.completed_at.desc()).all()
+        all_history_json = [order.to_dict() for order in all_history_db]
+
+        return jsonify({'success': True, 'orders': all_history_json})
+
+    except Exception as e:
+        print(f"[ERROR] Erro ao buscar histórico para admin: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/')
 def index():
