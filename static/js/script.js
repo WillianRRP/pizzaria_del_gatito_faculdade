@@ -467,7 +467,7 @@ function renderMyOrders() {
     return
   }
 
-  container.innerHTML = userOrders.map((order, index) => createOrderCard(order, index + 1)).join("");
+  container.innerHTML = userOrders.map((order) => createOrderCard(order)).join("")
 }
 
 function renderMyHistory() {
