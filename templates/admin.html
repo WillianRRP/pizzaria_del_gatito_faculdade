@@ -326,11 +326,11 @@
                     <div class="order-items">
                         <h4>Itens do Pedido:</h4>
                         <ul>
-                            ${order.items.map(item => `<li>• ${item}</li>`).join('')}
+                            ${order.items.map(item => `<li>• ${item.name}</li>`).join('')}
                         </ul>
                     </div>
                     <div class="order-total">
-                        Total: R$ ${order.total.toFixed(2)}
+                        Total:  R$ ${order.price.toFixed(2).replace('.', ',')}
                     </div>
                     <div class="status-buttons">
                         <button class="status-btn pendente" onclick="updateOrderStatus(${order.id}, 'pendente')">
