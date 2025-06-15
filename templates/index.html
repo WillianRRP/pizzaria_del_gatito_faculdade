@@ -30,173 +30,95 @@
                     <form id="login-form-element">
                         <div class="form-group">
                             <label for="login-email">E-mail</label>
-                            <input type="email" id="login-email" required>
+                            <input type="email" id="login-email" name="email" required>
                         </div>
                         <div class="form-group">
                             <label for="login-password">Senha</label>
-                            <input type="password" id="login-password" required>
+                            <input type="password" id="login-password" name="password" required>
                         </div>
-                        <button type="submit" class="btn-primary full-width">
-                            <span class="material-icons">login</span>
-                            Entrar
-                        </button>
+                        <button type="submit" class="btn-primary">Entrar</button>
                     </form>
-                    <p class="auth-switch">
-                        Não tem conta? 
-                        <a href="#" onclick="showRegisterForm()">Cadastre-se aqui</a>
-                    </p>
+                    <p>Não tem uma conta? <a href="#" id="show-register">Cadastre-se</a></p>
                 </div>
 
                 <div id="register-form" class="auth-form">
-                    <h2>Criar nova conta</h2>
+                    <h2>Criar uma nova conta</h2>
                     <form id="register-form-element">
                         <div class="form-group">
-                            <label for="register-name">Nome completo</label>
-                            <input type="text" id="register-name" required>
+                            <label for="register-name">Nome Completo</label>
+                            <input type="text" id="register-name" name="name" required>
                         </div>
                         <div class="form-group">
                             <label for="register-email">E-mail</label>
-                            <input type="email" id="register-email" required>
+                            <input type="email" id="register-email" name="email" required>
                         </div>
                         <div class="form-group">
                             <label for="register-phone">Telefone</label>
-                            <input type="tel" id="register-phone" required>
+                            <input type="tel" id="register-phone" name="phone" placeholder="(XX) XXXXX-XXXX" required>
                         </div>
                         <div class="form-group">
-                            <label for="register-address">Endereço</label>
-                            <textarea id="register-address" rows="3" required></textarea>
+                            <label for="register-address">Endereço (Rua, Número, Bairro)</label>
+                            <input type="text" id="register-address" name="address" required>
                         </div>
                         <div class="form-group">
                             <label for="register-password">Senha</label>
-                            <input type="password" id="register-password" required>
+                            <input type="password" id="register-password" name="password" required>
                         </div>
                         <div class="form-group">
-                            <label for="register-confirm-password">Confirmar senha</label>
-                            <input type="password" id="register-confirm-password" required>
+                            <label for="register-confirm-password">Confirmar Senha</label>
+                            <input type="password" id="register-confirm-password" name="confirm-password" required>
                         </div>
-                        <button type="submit" class="btn-primary full-width">
-                            <span class="material-icons">person_add</span>
-                            Cadastrar
-                        </button>
+                        <button type="submit" class="btn-primary">Cadastrar</button>
                     </form>
-                    <p class="auth-switch">
-                        Já tem conta? 
-                        <a href="#" onclick="showLoginForm()">Entre aqui</a>
-                    </p>
+                    <p>Já tem uma conta? <a href="#" id="show-login">Fazer Login</a></p>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="main-app" class="main-app" style="display: none;">
-        <header class="header">
-            <div class="container">
-                <div class="logo">
-                    <div class="logo-icon">
-                        <span class="cat-emoji">🐱</span>
-                        <span class="pizza-emoji">🍕</span>
-                    </div>
-                    <div class="logo-text">
-                        <h1>Pizzaria Del Gatito</h1>
-                        <p>Alvorada Piratini</p>
-                    </div>
+    <div id="app-content" class="app-content" style="display: none;">
+        <header class="app-header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <span class="cat-emoji">🐱</span>
+                    <span class="pizza-emoji">🍕</span>
                 </div>
-                <div class="header-user">
-                    <span class="user-welcome">Olá, <span id="user-name"></span>!</span>
-                    <button class="btn-logout" onclick="logout()">
-                        <span class="material-icons">logout</span>
-                        Sair
-                    </button>
+                <div class="logo-text">
+                    <h1>Pizzaria Del Gatito</h1>
+                    <p>Alvorada Piratini</p>
                 </div>
-                <nav class="nav">
-                    <button class="nav-btn active" data-section="meus-pedidos">
-                        <span class="material-icons">restaurant</span>
-                        Meus Pedidos
-                    </button>
-                    <button class="nav-btn" data-section="fazer-pedido">
-                        <span class="material-icons">add_circle</span>
-                        Fazer Pedido
-                    </button>
-                    <button class="nav-btn" data-section="meu-historico">
-                        <span class="material-icons">history</span>
-                        Meu Histórico
-                    </button>
-                </nav>
             </div>
+            <nav class="main-nav">
+                <button id="logout-button" class="btn-secondary">Sair</button>
+            </nav>
         </header>
 
-        <main class="main">
-            <div class="container">
-                <section id="meus-pedidos" class="section active">
-                    <div class="section-header">
-                        <h2>Meus Pedidos Atuais</h2>
-                        <button class="btn-primary" onclick="showSection('fazer-pedido')">
-                            <span class="material-icons">add</span>
-                            Novo Pedido
-                        </button>
-                    </div>
-                    <div class="orders-grid" id="my-orders-container">
-                        </div>
-                </section>
+        <main class="main-content">
+            <aside class="sidebar">
+                <a href="#" class="sidebar-link active" data-section="fazer-pedido">
+                    <span class="material-icons">add_shopping_cart</span>
+                    <span>Fazer Pedido</span>
+                </a>
+                <a href="#" class="sidebar-link" data-section="meus-pedidos">
+                    <span class="material-icons">receipt_long</span>
+                    <span>Meus Pedidos</span>
+                </a>
+                <a href="#" class="sidebar-link" data-section="meu-historico">
+                    <span class="material-icons">history</span>
+                    <span>Histórico</span>
+                </a>
+            </aside>
 
-                <section id="fazer-pedido" class="section">
+            <div class="content-area">
+                <section id="fazer-pedido" class="section active">
                     <div class="section-header">
-                        <h2>Fazer Novo Pedido</h2>
+                        <h2>Faça seu Pedido</h2>
                     </div>
-                    <form class="order-form" id="order-form">
-                        <div class="customer-info">
-                            <h3>Seus dados</h3>
-                            <div class="customer-display">
-                                <p><strong>Nome:</strong> <span id="customer-display-name"></span></p>
-                                <p><strong>Telefone:</strong> <span id="customer-display-phone"></span></p>
-                                <p><strong>Endereço:</strong> <span id="customer-display-address"></span></p>
-                            </div>
-                        </div>
-                        
+                    <form id="place-order-form" class="order-form">
                         <div class="form-group">
-                            <label>Selecione suas pizzas</label>
-                            <div class="pizza-selection">
-                                <div class="pizza-item">
-                                    <input type="checkbox" id="margherita" value="margherita">
-                                    <label for="margherita">
-                                        <div class="pizza-info">
-                                            <span class="pizza-name">Margherita</span>
-                                            <span class="pizza-price">R$ 25,00</span>
-                                        </div>
-                                        <div class="pizza-description">Molho de tomate, mussarela e manjericão</div>
-                                    </label>
+                            <label>Selecione suas Pizzas:</label>
+                            <div id="pizza-selection" class="pizza-selection-grid">
                                 </div>
-                                <div class="pizza-item">
-                                    <input type="checkbox" id="pepperoni" value="pepperoni">
-                                    <label for="pepperoni">
-                                        <div class="pizza-info">
-                                            <span class="pizza-name">Pepperoni</span>
-                                            <span class="pizza-price">R$ 30,00</span>
-                                        </div>
-                                        <div class="pizza-description">Molho de tomate, mussarela e pepperoni</div>
-                                    </label>
-                                </div>
-                                <div class="pizza-item">
-                                    <input type="checkbox" id="calabresa" value="calabresa">
-                                    <label for="calabresa">
-                                        <div class="pizza-info">
-                                            <span class="pizza-name">Calabresa</span>
-                                            <span class="pizza-price">R$ 28,00</span>
-                                        </div>
-                                        <div class="pizza-description">Molho de tomate, mussarela, calabresa e cebola</div>
-                                    </label>
-                                </div>
-                                <div class="pizza-item">
-                                    <input type="checkbox" id="quatro-queijos" value="quatro-queijos">
-                                    <label for="quatro-queijos">
-                                        <div class="pizza-info">
-                                            <span class="pizza-name">Quatro Queijos</span>
-                                            <span class="pizza-price">R$ 32,00</span>
-                                        </div>
-                                        <div class="pizza-description">Mussarela, provolone, parmesão e gorgonzola</div>
-                                    </label>
-                                </div>
-                            </div>
                         </div>
 
                         <div class="order-summary" id="order-summary" style="display: none;">
@@ -215,6 +137,14 @@
                             </button>
                         </div>
                     </form>
+                </section>
+
+                <section id="meus-pedidos" class="section">
+                    <div class="section-header">
+                        <h2>Meus Pedidos Ativos</h2>
+                    </div>
+                    <div class="orders-grid" id="my-orders-container">
+                        </div>
                 </section>
 
                 <section id="meu-historico" class="section">
