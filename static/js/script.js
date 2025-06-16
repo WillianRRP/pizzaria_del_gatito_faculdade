@@ -543,7 +543,7 @@ function createOrderCard(order, isHistory = false) {
         const pizzaInfo = pizzaPrices[item] ? { name: pizzaNames[item], price: pizzaPrices[item] } :
                           (typeof item === 'object' && item !== null) ? item : { name: item, price: 0 }; // Fallback para objeto ou string simples
         
-        return `<li>• ${pizzaInfo.name} (R$ ${parseFloat(pizzaInfo.price).toFixed(2).replace('.', ',')})</li>`;
+        return `<li>• ${pizzaInfo.name} R$ ${parseFloat(pizzaInfo.price).toFixed(2).replace('.', ',')}</li>`;
       }).join("")
     : `<li>${order.items || "Nenhum item especificado"}</li>`; // Fallback caso 'items' não seja um array ou seja nulo
 
