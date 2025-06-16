@@ -1,43 +1,51 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Pizzaria Del Gatito</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
         .admin-header {
             background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
         }
+
         .admin-stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 1rem;
             margin-bottom: 2rem;
         }
+
         .stat-card {
             background: white;
             padding: 1.5rem;
             border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
             text-align: center;
         }
+
         .stat-number {
             font-size: 2rem;
             font-weight: 700;
             color: #dc3545;
         }
+
         .stat-label {
             color: #666;
             margin-top: 0.5rem;
         }
+
         .status-buttons {
             display: flex;
             gap: 0.5rem;
             flex-wrap: wrap;
         }
+
         .status-btn {
             padding: 0.3rem 0.8rem;
             border: none;
@@ -46,20 +54,38 @@
             cursor: pointer;
             transition: all 0.3s ease;
         }
-        .status-btn.pendente { background: #ffc107; color: #000; }
-        .status-btn.preparando { background: #17a2b8; color: white; }
-        .status-btn.saiu-entrega { background: #28a745; color: white; }
-        .status-btn.entregue { background: #6c757d; color: white; }
+
+        .status-btn.pendente {
+            background: #ffc107;
+            color: #000;
+        }
+
+        .status-btn.preparando {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .status-btn.saiu-entrega {
+            background: #28a745;
+            color: white;
+        }
+
+        .status-btn.entregue {
+            background: #6c757d;
+            color: white;
+        }
+
         .admin-login {
             max-width: 400px;
             margin: 2rem auto;
             background: white;
             padding: 2rem;
             border-radius: 15px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
         }
     </style>
 </head>
+
 <body>
     <!-- Tela de Login Admin -->
     <div id="admin-login-screen" class="auth-screen">
@@ -171,7 +197,7 @@
                         }
                     });
                     const data = await response.json();
-                    
+
                     if (data.success && data.user.role === 'master') {
                         currentAdmin = data.user;
                         showAdminPanel();
@@ -202,7 +228,7 @@
 
         async function handleAdminLogin(e) {
             e.preventDefault();
-            
+
             const email = document.getElementById('admin-email').value;
             const password = document.getElementById('admin-password').value;
 
@@ -239,7 +265,7 @@
 
         async function loadAdminData() {
             const token = localStorage.getItem('adminToken');
-            
+
             try {
                 // Carregar estatísticas
                 const statsResponse = await fetch('/api/admin/stats', {
@@ -248,7 +274,7 @@
                     }
                 });
                 const statsData = await statsResponse.json();
-                
+
                 if (statsData.success) {
                     renderAdminStats(statsData.stats);
                 }
@@ -260,7 +286,7 @@
                     }
                 });
                 const ordersData = await ordersResponse.json();
-                
+
                 if (ordersData.success) {
                     renderAdminOrders(ordersData.orders);
                 }
@@ -297,7 +323,7 @@
 
         function renderAdminOrders(orders) {
             const container = document.getElementById('admin-orders-container');
-            
+
             if (orders.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
@@ -331,8 +357,8 @@
                     <div class="order-items">
     <h4>Itens do Pedido:</h4>
     <ul>
-        ${order.items.map(item => `<li>• ${item.name || item} (R$ ${new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.price || 0)})</li>`).join('')}
-    </ul>
+${order.items.map(item => `<li>• ${item.name || item} R$ ${new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(item.price || 0)}</li>`).join('')}    
+</ul>
 </div>
 <div class="order-total">
     Total: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(order.total)}
@@ -357,7 +383,7 @@
 
         async function updateOrderStatus(orderId, newStatus) {
             const token = localStorage.getItem('adminToken');
-            
+
             try {
                 const response = await fetch(`/api/admin/orders/${orderId}`, {
                     method: 'PUT',
@@ -419,4 +445,5 @@
         }
     </script>
 </body>
+
 </html>

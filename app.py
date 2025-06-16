@@ -669,6 +669,85 @@ def api_admin_stats():
     except Exception as e:
         print(f"[ERROR] Erro ao buscar estatísticas: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+    
+
+@app.route('/api/admin/orders/<int:order_id>', methods=['DELETE'])
+def api_admin_delete_order(order_id: int):
+   
+    print(f"[DEBUG] Rota /api/admin/orders/{order_id} (DELETE) chamada")
+
+    try:
+        # Esta linha e as seguintes dentro do try devem ter 8 espaços (ou 2 tabs)
+        user = get_current_user(request)
+        if not user or not is_master_user(user):
+            # As linhas dentro do if devem ter 12 espaços (ou 3 tabs)
+            return jsonify({'success': False, 'error': 'Acesso negado. Apenas para administradores.'}), 403
+
+        order_to_delete = Order.query.get(order_id)
+        if not order_to_delete:
+            return jsonify({'success': False, 'error': f'Pedido com ID {order_id} não encontrado.'}), 404
+
+        if order_to_delete.status == 'entregue':
+            return jsonify({'success': False, 'error': f'Pedido com ID {order_id} já foi entregue e movido para o histórico. Não pode ser deletado de pedidos ativos.'}), 400
+
+        db.session.delete(order_to_delete)
+        db.session.commit()
+
+        print(f"[DEBUG] Pedido {order_id} deletado com sucesso.")
+        return jsonify({'success': True, 'message': f'Pedido com ID {order_id} deletado com sucesso.'}), 200
+
+    except Exception as e:
+        # As linhas dentro do except devem ter 8 espaços (ou 2 tabs)
+        db.session.rollback()
+        print(f"[ERROR] Erro ao deletar pedido {order_id}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/admin/users/<int:user_id>', methods=['DELETE'])
+def api_admin_delete_user(user_id: int):
+    """
+    Deleta um usuário do banco de dados.
+    Apenas usuários master (administradores) podem realizar esta operação.
+    Um usuário master não pode deletar a si próprio.
+    """
+    print(f"[DEBUG] Rota /api/admin/users/{user_id} (DELETE) chamada")
+
+    try:
+        # 1. Autenticação e Autorização: Verificar se o usuário é master
+        user_data = get_current_user(request)
+        # Se não há user_data (token inválido/ausente) OU o usuário não é master
+        if not user_data or not is_master_user(user_data):
+            print("[DEBUG] Tentativa de deletar usuário por não-administrador ou usuário não autenticado.")
+            return jsonify({"success": False, "error": "Acesso negado: Somente administradores podem deletar usuários."}), 403
+
+        # 2. Impedir auto-exclusão do usuário master
+        # Verifica se o ID do usuário na URL é o mesmo ID do usuário logado E se o usuário logado é master
+        if user_id == user_data['id'] and is_master_user(user_data):
+            print(f"[DEBUG] Tentativa de auto-exclusão do usuário master (ID: {user_id}).")
+            return jsonify({"success": False, "error": "Não é possível deletar seu próprio usuário master."}), 400
+
+        # 3. Encontrar o usuário a ser deletado
+        user_to_delete = User.query.get(user_id)
+        if not user_to_delete:
+            print(f"[DEBUG] Tentativa de deletar usuário não encontrado (ID: {user_id}).")
+            return jsonify({"success": False, "error": "Usuário não encontrado."}), 404
+
+        # 4. Processar a exclusão
+        # Importante: Devido ao 'cascade="all, delete-orphan"' definido no relacionamento User.orders,
+        # quando um User é deletado, todos os seus Orders ativos associados também serão deletados automaticamente.
+        # Para OrderHistory, com 'ondelete='SET NULL'' na ForeignKey, o user_id será NULL, mantendo o histórico.
+
+        username_deleted = user_to_delete.name # Guarda o nome para a mensagem de sucesso
+        db.session.delete(user_to_delete) # Realiza a exclusão do usuário
+        db.session.commit() # Confirma a transação no banco de dados
+
+        print(f"[DEBUG] O usuário '{username_deleted}' (ID: {user_id}) foi excluído com sucesso.")
+        return jsonify({"success": True, "message": f"O usuário '{username_deleted}' (ID: {user_id}) foi excluído."}), 200
+
+    except Exception as e:
+        # Em caso de qualquer erro inesperado, reverte a transação para evitar dados inconsistentes
+        db.session.rollback()
+        print(f"[ERROR] Erro ao deletar usuário {user_id}: {e}")
+        return jsonify({"success": False, "error": f"O usuário não foi excluído. Erro interno do servidor: {str(e)}."}), 500
 
 # --- ROTAS DE SERVIÇO DE ARQUIVOS ESTÁTICOS ---
 
