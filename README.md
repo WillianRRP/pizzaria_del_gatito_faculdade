@@ -5,6 +5,7 @@ Projeto acadêmico desenvolvido para estudo na faculdade, que consiste em um sis
 ## 🖥️ Acesse
 
 👉 [https://pizzaria-del-gatito-faculdade.onrender.com](https://pizzaria-del-gatito-faculdade.onrender.com)
+Nota: A aplicação hospedada no Render pode desligar por inatividade, causando atraso na primeira resposta após algum tempo sem uso.
 
 ## ✅ Funcionalidades
 
